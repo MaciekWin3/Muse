@@ -1,25 +1,53 @@
 using System.Net.Mime;
+using Muse.Windows;
 using Terminal.Gui;
 
 namespace Muse;
 
 public class App
 {
-   public App()
-   {
-      
-   }
-
    public void Run(string[] args)
    {
       Application.Init();
-      var label = new Label("Hello, World!")
+      var win = new MainWindow(null);
+      Colors.Base.Normal = Application.Driver.MakeAttribute (Color.Green, Color.Black);
+      Application.Top.Add(CreateMenuBar());
+      Application.Top.Add(win);
+      Application.Run();
+   }
+
+   private MenuBar CreateMenuBar()
+   {
+      return new MenuBar(new MenuBarItem[]
+      {
+         new MenuBarItem("_File", new MenuItem[]
+         {
+            new MenuItem("_Quit", "", () => Quit())
+         }),
+         new MenuBarItem("_Help", new MenuItem[]
+         {
+            new MenuItem("_About", "", ()
+               => MessageBox.Query(49, 5, "About", "Written by Ali Bahraminezhad\nVersion: 0.0001", "Ok"))
+         })
+      });
+   }
+
+   private Label InitLabel()
+   {
+   
+      
+      var label2 = new Label("Hello, World from Sopot!")
       {
          X = Pos.Center(),
-         Y = Pos.Center(),
+         Y = Pos.Center() - 1,
          Height = 1
       };
-      Application.Top.Add(label);
-      Application.Run();
+
+      return label2;
+   }
+   
+   void Quit()
+   {
+      Application.RequestStop();
    }
 }
