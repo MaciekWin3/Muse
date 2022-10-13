@@ -10,7 +10,8 @@ public class App
    {
       Application.Init();
       var win = new MainWindow(null);
-      Colors.Base.Normal = Application.Driver.MakeAttribute (Color.Green, Color.Black);
+      Colors.Base.Normal = Application.Driver.MakeAttribute(Color.Green, Color.Black);
+      Colors.Menu.Normal = Application.Driver.MakeAttribute(Color.Blue, Color.BrightYellow);
       Application.Top.Add(CreateMenuBar());
       Application.Top.Add(win);
       Application.Run();
@@ -27,15 +28,13 @@ public class App
          new MenuBarItem("_Help", new MenuItem[]
          {
             new MenuItem("_About", "", ()
-               => MessageBox.Query(49, 5, "About", "Written by Ali Bahraminezhad\nVersion: 0.0001", "Ok"))
+               => MessageBox.Query(49, 5, "About", "Written by Maciej Winnik", "Ok"))
          })
       });
    }
 
    private Label InitLabel()
    {
-   
-      
       var label2 = new Label("Hello, World from Sopot!")
       {
          X = Pos.Center(),
