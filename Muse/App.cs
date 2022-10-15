@@ -21,13 +21,13 @@ public class App
    {
       return new MenuBar(new MenuBarItem[]
       {
-         new MenuBarItem("_File", new MenuItem[]
+         new MenuBarItem("File", new MenuItem[]
          {
-            new MenuItem("_Quit", "", () => Quit())
+            new MenuItem("Quit", "", () => Quit())
          }),
-         new MenuBarItem("_Help", new MenuItem[]
+         new MenuBarItem("Help", new MenuItem[]
          {
-            new MenuItem("_About", "", ()
+            new MenuItem("About", "", ()
                => MessageBox.Query(49, 5, "About", "Written by Maciej Winnik", "Ok"))
          })
       });
@@ -44,7 +44,7 @@ public class App
 
       return label2;
    }
-   
+
    void Quit()
    {
       Application.RequestStop();

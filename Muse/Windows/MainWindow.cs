@@ -15,6 +15,8 @@ public class MainWindow : Window
     public void InitControls()
     {
         Add(InitLabel());
+        Add(InitPlayButton());
+        Add(InitPauseButton());
     }
 
     private Label InitLabel()
@@ -25,5 +27,25 @@ public class MainWindow : Window
              Y = Pos.Center(),
              Height = 1,
           };
+    }
+
+    private Button InitPlayButton()
+    {
+        return new Button("|>")
+        {
+            X = Pos.Center(),
+            Y = 5,
+            Height = 1
+        };
+    } 
+    
+    private Button InitPauseButton()
+    {
+        return new Button("||")
+        {
+            X = Pos.Center() + 10,
+            Y = 5,
+            Height = 1
+        };
     }
 }

@@ -11,7 +11,7 @@ try
 {
     services.GetRequiredService<App>().Run(args);
 }
-catch(Exception ex)
+catch (Exception ex)
 {
    Console.WriteLine(ex.Message);
 }
