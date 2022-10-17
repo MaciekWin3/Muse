@@ -1,4 +1,5 @@
 using System.Net.Mime;
+using Muse.Player.Interfaces;
 using Muse.Windows;
 using Terminal.Gui;
 
@@ -6,13 +7,21 @@ namespace Muse;
 
 public class App
 {
+   private readonly IPlayer player;
+
+   public App(IPlayer player)
+   {
+      this.player = player;
+   }
+   
    public void Run(string[] args)
    {
       Application.Init();
-      var win = new MainWindow(null);
+      var win = new MainWindow(player);
       Colors.Base.Normal = Application.Driver.MakeAttribute(Color.Green, Color.Black);
       Colors.Menu.Normal = Application.Driver.MakeAttribute(Color.Blue, Color.BrightYellow);
       Application.Top.Add(CreateMenuBar());
+      //Application.Top.Add(InitLabel(win));
       Application.Top.Add(win);
       Application.Run();
    }
@@ -33,12 +42,12 @@ public class App
       });
    }
 
-   private Label InitLabel()
+   private Label InitLabel(View parent)
    {
       var label2 = new Label("Hello, World from Sopot!")
       {
          X = Pos.Center(),
-         Y = Pos.Center() - 1,
+         Y = Pos.Bottom(parent),
          Height = 1
       };
 

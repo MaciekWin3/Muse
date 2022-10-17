@@ -1,22 +1,31 @@
-﻿using Terminal.Gui;
+﻿using Muse.Player.Interfaces;
+using Terminal.Gui;
 
 namespace Muse.Windows;
 
 public class MainWindow : Window
 {
-    private readonly View parent;
-
-    public MainWindow(View parent) : base("Muse")
+    private readonly IPlayer player;
+    
+    public MainWindow(IPlayer player) : base("Muse")
     {
-        this.parent = parent;
+        this.player = player;
         InitControls();
+        InitStyles();
     }
 
     public void InitControls()
     {
         Add(InitLabel());
-        Add(InitPlayButton());
-        Add(InitPauseButton());
+        Add(InitPlayPauseButton());
+    }
+
+    public void InitStyles()
+    {
+       X = 0;
+       Y = 1;
+       Width = Dim.Fill();
+       Height = Dim.Fill();
     }
 
     private Label InitLabel()
@@ -28,24 +37,29 @@ public class MainWindow : Window
              Height = 1,
           };
     }
-
-    private Button InitPlayButton()
+   
+    private Button InitPlayPauseButton()
     {
-        return new Button("|>")
+        var button = new Button("||")
         {
             X = Pos.Center(),
-            Y = 5,
-            Height = 1
+            Y = Pos.Bottom(this) - 4,
+            Height = 1,
         };
-    } 
-    
-    private Button InitPauseButton()
-    {
-        return new Button("||")
+        button.Clicked += () =>
         {
-            X = Pos.Center() + 10,
-            Y = 5,
-            Height = 1
+            if (button.Text == "|>")
+            {
+                button.Text = "||";
+                player.Play(@"C:\Users\Maciek\Music\Andzia.mp3");
+            }
+            else 
+            {
+                button.Text = "|>";
+                player.Pause();
+            }
         };
+
+        return button;
     }
 }

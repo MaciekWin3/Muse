@@ -40,7 +40,7 @@ public class WindowsPlayer : IPlayer
         playStopwatch = new Stopwatch();
 
         ExecuteMsiCommand("Close All");
-        ExecuteMsiCommand($"Status {this.fileName} Lenght");
+        ExecuteMsiCommand($"Status {this.fileName} Length");
         ExecuteMsiCommand($"Play {this.fileName}");
         Paused = false;
         Playing = true;
@@ -55,7 +55,7 @@ public class WindowsPlayer : IPlayer
     {
         if (Playing && !Paused)
         {
-            ExecuteMsiCommand($"Resume {this.fileName}");
+            ExecuteMsiCommand($"Pause {this.fileName}");
             Paused = true;
             playbackTimer.Stop();
             playStopwatch.Stop();
