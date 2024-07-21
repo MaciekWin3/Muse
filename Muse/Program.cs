@@ -9,13 +9,27 @@ using var scope = host.Services.CreateScope();
 
 var services = scope.ServiceProvider;
 
+//// Audio Test
+//var file = @"C:\Users\macie\Music\Miszmasz\Dua Lipa - Houdini (Official Music Video).mp3";
+//var reader = new Mp3FileReader(file);
+//var waveOut = new WaveOutEvent(); // or WaveOutEvent()
+//waveOut.Init(reader);
+//waveOut.Play();
+//await Task.Delay(1000);
+//waveOut.Stop();
+//await Task.Delay(1000);
+//waveOut.Play();
+//Console.ReadKey();
+
+
+string test = @"C:\Users\macie\Music\Miszmasz\Dua Lipa - Houdini (Official Music Video).mp3";
 try
 {
     services.GetRequiredService<App>().Run(args);
 }
 catch (Exception ex)
 {
-   Console.WriteLine(ex.Message);
+    Console.Error.WriteLine(ex.Message);
 }
 
 static IHostBuilder CreateHostBuilder(string[] args)
@@ -24,6 +38,6 @@ static IHostBuilder CreateHostBuilder(string[] args)
         .ConfigureServices((_, services) =>
         {
             services.AddSingleton<App>();
-            services.AddTransient<IPlayer, Player>();
+            services.AddSingleton<IPlayer, Player>();
         });
 }
