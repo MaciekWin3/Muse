@@ -1,6 +1,6 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Muse", "Muse\Muse.csproj", "{CA961F64-7C3C-47D9-B5E3-7E3F98C6678D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Muse", "Muse\Muse.csproj", "{CA961F64-7C3C-47D9-B5E3-7E3F98C6678D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
