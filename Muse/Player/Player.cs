@@ -73,6 +73,16 @@ public class Player : IPlayer, IDisposable
         return Result.Fail<SongInfo>("Unable to get song info");
     }
 
+    public Result ChangeCurrentSongTime(int seconds)
+    {
+        if (audioFileReader is not null)
+        {
+            audioFileReader.CurrentTime = TimeSpan.FromSeconds(seconds);
+            return Result.Ok();
+        }
+        return Result.Fail("Unable to change current song time");
+    }
+
     public void Dispose()
     {
         waveOutDevice?.Stop();
