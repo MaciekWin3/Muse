@@ -1,10 +1,13 @@
+using Muse.Player.Utils;
+
 namespace Muse.Player.Interfaces;
 
 public interface IPlayer
 {
-    void Load(string fileName);
-    void Play();
-    void Pause();
-    void Stop();
-    void SetVolume(int percent);
+    Result Load(string fileName);
+    Result Play();
+    Result Pause();
+    Result Stop();
+    Result SetVolume(int percent);
+    Result<SongInfo> GetSongInfo();
 }

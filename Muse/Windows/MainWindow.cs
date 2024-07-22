@@ -50,7 +50,15 @@ public class MainWindow : Window
         musicList.OpenSelectedItem += (sender, e) =>
         {
             var song = e.Value.ToString();
-            label.Text = "Playing: " + song;
+            var songInfo = player.GetSongInfo();
+            if (songInfo.Success)
+            {
+                label.Text = "Playing: " + song + $" {songInfo.Value.TotalTimeInSeconds}";
+            }
+            else
+            {
+                label.Text = songInfo.Error;
+            }
             player.Load(x + song);
             player.Play();
         };
@@ -72,7 +80,7 @@ public class MainWindow : Window
 
     private Slider InitVolumeSlider()
     {
-        var options = new List<object> { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        var options = new List<object> { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 95, 100 };
         volumeSlider = new Slider(options)
         {
             X = 1,
@@ -97,6 +105,7 @@ public class MainWindow : Window
         {
             Text = "||",
             X = Pos.Center(),
+            //Y = Pos.Bottom(this) - 4,
             Y = Pos.Bottom(this) - 4,
             Height = 1,
         };

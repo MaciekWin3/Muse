@@ -1,4 +1,5 @@
 ﻿using Muse.Player.Interfaces;
+using Muse.Player.Utils;
 using NAudio.Wave;
 
 namespace Muse.Player;
@@ -14,7 +15,7 @@ public class Player : IPlayer, IDisposable
         waveOutDevice = new WaveOutEvent();
     }
 
-    public void Load(string fileName)
+    public Result Load(string fileName)
     {
         if (audioFileReader is not null)
         {
@@ -23,33 +24,53 @@ public class Player : IPlayer, IDisposable
         }
         audioFileReader = new AudioFileReader(fileName);
         waveOutDevice.Init(audioFileReader);
+        return Result.Ok();
     }
 
-    public void Play()
+    public Result Play()
     {
-        waveOutDevice.Play();
+        if (audioFileReader is not null)
+        {
+            waveOutDevice.Play();
+            return Result.Ok();
+        }
+        return Result.Fail("Unable to play audio file");
     }
 
-    public void Pause()
+    public Result Pause()
     {
         waveOutDevice.Pause();
+        return Result.Ok();
     }
 
-    public void Stop()
+    public Result Stop()
     {
         if (audioFileReader is not null)
         {
             audioFileReader.Position = 0;
+            return Result.Ok();
         }
+        return Result.Fail("Unable to stop audio file");
     }
 
-    public void SetVolume(int percent)
+    public Result SetVolume(int percent)
     {
         float volume = (float)Math.Max(0.0, Math.Min(1.0, percent / 10.0));
         if (audioFileReader is not null)
         {
             audioFileReader.Volume = volume;
+            return Result.Ok();
         }
+        return Result.Fail("Unable to set volume");
+    }
+
+    public Result<SongInfo> GetSongInfo()
+    {
+        if (audioFileReader is not null)
+        {
+            return Result.Ok(new SongInfo(audioFileReader));
+        }
+        return Result.Fail<SongInfo>("Unable to get song info");
     }
 
     public void Dispose()
