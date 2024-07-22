@@ -11,7 +11,6 @@ public class MainWindow : Window
     private Slider volumeSlider = null!;
     private ListView musicList = null!;
 
-
     public MainWindow(IPlayer player)
     {
         this.player = player;
@@ -107,9 +106,6 @@ public class MainWindow : Window
             if (button.Text == "|>")
             {
                 button.Text = "||";
-                var song = @"C:\Users\macie\Music\Miszmasz\Dua Lipa - Houdini (Official Music Video).mp3";
-                label.Text = "Playing: " + song;
-                player.Load(song);
                 player.Play();
             }
             else
