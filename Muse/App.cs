@@ -4,7 +4,6 @@ using Terminal.Gui;
 
 namespace Muse;
 
-public class App
 {
     private readonly IPlayer player;
 
@@ -16,46 +15,33 @@ public class App
     public void Run(string[] args)
     {
         Application.Init();
+        Add(InitMenuBar());
         var win = new MainWindow(player);
-        Application.Run(win);
-        //Colors.Base.Normal = Application.Driver.MakeAttribute(Color.Green, Color.Black);
-        //Colors.Menu.Normal = Application.Driver.MakeAttribute(Color.Blue, Color.BrightYellow);
-        //Application.Top.Add(CreateMenuBar());
-        //Application.Top.Add(InitLabel(win));
+        Add(win);
+        Application.Run(this);
         Application.Shutdown();
     }
 
-    //private MenuBar CreateMenuBar()
-    //{
-    //    return new MenuBar(new MenuBarItem[]
-    //    {
-    //     new MenuBarItem("File", new MenuItem[]
-    //     {
-    //        new MenuItem("Quit", "", () => Quit())
-    //     }),
-    //     new MenuBarItem("Help", new MenuItem[]
-    //     {
-    //        new MenuItem("About", "", ()
-    //           => MessageBox.Query(49, 5, "About", "Written by Maciej Winnik", "Ok"))
-    //     })
-    //    });
-    //}
 
-    private Label InitLabel(View parent)
+    private MenuBar InitMenuBar()
     {
-        var label2 = new Label()
+        menuBar = new MenuBar
         {
-            Text = "Hello, World from Sopot!",
-            X = Pos.Center(),
-            Y = Pos.Bottom(parent),
-            Height = 1
+            Menus =
+            [
+                new("_File", new MenuItem[]
+                {
+                }),
+                new("_Help", new MenuItem[]
+                {
+                    new("_About", "", () => ShowAsciiArt())
+                })
+            ]
         };
 
-        return label2;
+        return menuBar;
     }
 
-    void Quit()
     {
-        Application.RequestStop();
     }
 }
