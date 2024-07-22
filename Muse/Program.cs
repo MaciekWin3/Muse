@@ -21,8 +21,6 @@ var services = scope.ServiceProvider;
 //waveOut.Play();
 //Console.ReadKey();
 
-
-string test = @"C:\Users\macie\Music\Miszmasz\Dua Lipa - Houdini (Official Music Video).mp3";
 try
 {
     services.GetRequiredService<App>().Run(args);
