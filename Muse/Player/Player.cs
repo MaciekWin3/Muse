@@ -6,7 +6,7 @@ namespace Muse.Player;
 public class Player : IPlayer, IDisposable
 {
     private readonly IWavePlayer waveOutDevice;
-    private AudioFileReader audioFileReader;
+    private AudioFileReader audioFileReader = null!;
     public PlaybackState State => waveOutDevice.PlaybackState;
 
     public Player()
@@ -35,26 +35,12 @@ public class Player : IPlayer, IDisposable
         waveOutDevice.Pause();
     }
 
-    public async Task Resume()
-    {
-    }
-
     public void Stop()
     {
         if (audioFileReader is not null)
         {
             audioFileReader.Position = 0;
         }
-    }
-    public void Dispose()
-    {
-        waveOutDevice?.Stop();
-        waveOutDevice?.Dispose();
-        audioFileReader?.Dispose();
-    }
-
-    private void OnPlaybackFinished(object sender, EventArgs e)
-    {
     }
 
     public void SetVolume(int percent)
@@ -66,8 +52,10 @@ public class Player : IPlayer, IDisposable
         }
     }
 
-    void IPlayer.Resume()
+    public void Dispose()
     {
-        throw new NotImplementedException();
+        waveOutDevice?.Stop();
+        waveOutDevice?.Dispose();
+        audioFileReader?.Dispose();
     }
 }
