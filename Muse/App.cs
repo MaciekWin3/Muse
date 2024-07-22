@@ -23,6 +23,7 @@ public class App : Toplevel
         Add(win);
         Application.Run(this);
         Application.Shutdown();
+        player.Dispose();
     }
 
     private MenuBar InitMenuBar()
