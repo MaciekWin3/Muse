@@ -1,66 +1,73 @@
-﻿using System.Runtime.InteropServices;
-using Muse.Player.Interfaces;
-using Muse.Player.Players;
+﻿using Muse.Player.Interfaces;
+using NAudio.Wave;
 
 namespace Muse.Player;
 
-public class Player : IPlayer
+public class Player : IPlayer, IDisposable
 {
-    private readonly IPlayer internalPlayer;
-    public event EventHandler PlaybackFinished;
-
-    public bool Playing => internalPlayer.Playing;
-    public bool Paused => internalPlayer.Paused;
+    private readonly IWavePlayer waveOutDevice;
+    private AudioFileReader audioFileReader;
+    public PlaybackState State => waveOutDevice.PlaybackState;
 
     public Player()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            internalPlayer = new WindowsPlayer();
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            internalPlayer = new LinuxPlayer();
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            internalPlayer = new MacPlayer();
-        }
-        else
-        {
-            throw new Exception("No implementation exists for the current OS!");
-        }
-
-        internalPlayer.PlaybackFinished += OnPlaybackFinished;
+        waveOutDevice = new WaveOutEvent();
     }
 
-    public async Task Play(string fileName)
+    public void Load(string fileName)
     {
-        await internalPlayer.Play(fileName);
+        if (audioFileReader is not null)
+        {
+            audioFileReader?.Dispose();
+            waveOutDevice.Stop();
+        }
+        audioFileReader = new AudioFileReader(fileName);
+        waveOutDevice.Init(audioFileReader);
     }
 
-    public async Task Pause()
+    public void Play()
     {
-        await internalPlayer.Pause();
+        waveOutDevice.Play();
+    }
+
+    public void Pause()
+    {
+        waveOutDevice.Pause();
     }
 
     public async Task Resume()
     {
-        await internalPlayer.Resume();
     }
 
-    public async Task Stop()
+    public void Stop()
     {
-        await internalPlayer.Stop();
+        if (audioFileReader is not null)
+        {
+            audioFileReader.Position = 0;
+        }
+    }
+    public void Dispose()
+    {
+        waveOutDevice?.Stop();
+        waveOutDevice?.Dispose();
+        audioFileReader?.Dispose();
     }
 
     private void OnPlaybackFinished(object sender, EventArgs e)
     {
-        PlaybackFinished?.Invoke(this, e);
     }
 
-    public async Task SetVolume(byte percent)
+    public void SetVolume(int percent)
     {
-        await internalPlayer.SetVolume(percent);
+        float volume = (float)Math.Max(0.0, Math.Min(1.0, percent / 10.0));
+        if (audioFileReader is not null)
+        {
+            audioFileReader.Volume = volume;
+        }
+    }
+
+    void IPlayer.Resume()
+    {
+        throw new NotImplementedException();
     }
 }
