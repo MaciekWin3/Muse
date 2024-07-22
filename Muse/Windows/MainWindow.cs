@@ -6,11 +6,21 @@ namespace Muse.Windows;
 
 public class MainWindow : Window
 {
+    // TODO: Checes if next/preious back/forward is avilable
+    // TODO: Remove hardcoded path
+    private readonly static string MUSIC_DIRECTORY = @"C:\\Users\\macie\\Music\\Miszmasz\\";
+
     private readonly IPlayer player;
+    private Button playPauseButton = null!;
+    private Button forwardButton = null!;
+    private Button backButton = null!;
+    private Button nextSongButton = null!;
+    private Button previousSongButton = null!;
     private Label label = null!;
     private Slider volumeSlider = null!;
     private ListView musicList = null!;
 
+    private readonly List<FileInfo> playlist = GetMusicList(MUSIC_DIRECTORY).ToList();
     public MainWindow(IPlayer player)
     {
         this.player = player;
@@ -22,8 +32,13 @@ public class MainWindow : Window
     {
         Add(InitMusicList());
         Add(InitLabel("Hello, World!"));
-        Add(InitPlayPauseButton());
         Add(InitVolumeSlider());
+        // Buttons
+        Add(InitPlayPauseButton());
+        Add(InitForwardButton());
+        Add(InitBackButton());
+        Add(InitNextSongButton());
+        Add(InitPreviousSongButton());
     }
 
     public void InitStyles()
@@ -36,21 +51,19 @@ public class MainWindow : Window
 
     private ListView InitMusicList()
     {
-        var x = @"C:\\Users\\macie\\Music\\Miszmasz\\";
-        var items = GetMusicList(x);
         musicList = new ListView()
         {
             X = 1,
             Y = 1,
             Width = Dim.Fill(),
             Height = 5,
-            Source = new ListWrapper<string>(new ObservableCollection<string>(items))
+            Source = new ListWrapper<string>(new ObservableCollection<string>(playlist.Select(f => f.Name)))
         };
 
         musicList.OpenSelectedItem += (sender, e) =>
         {
             var song = e.Value.ToString();
-            player.Load(x + song);
+            player.Load(MUSIC_DIRECTORY + song);
             var songInfo = player.GetSongInfo();
             if (songInfo.Success)
             {
@@ -60,7 +73,7 @@ public class MainWindow : Window
             {
                 label.Text = songInfo.Error;
             }
-            player.Load(x + song);
+            player.Load(MUSIC_DIRECTORY + song);
             player.Play();
         };
 
@@ -100,9 +113,10 @@ public class MainWindow : Window
         return volumeSlider;
     }
 
+
     private Button InitPlayPauseButton()
     {
-        var button = new Button()
+        playPauseButton = new Button()
         {
             Text = "||",
             X = Pos.Center(),
@@ -111,11 +125,11 @@ public class MainWindow : Window
             Height = 1,
         };
 
-        button.Accept += (sender, e) =>
+        playPauseButton.Accept += (sender, e) =>
         {
-            if (button.Text == "|>")
+            if (playPauseButton.Text == "|>")
             {
-                button.Text = "||";
+                playPauseButton.Text = "||";
                 player.Play();
 
                 Application.AddTimeout(TimeSpan.FromSeconds(1), () =>
@@ -123,28 +137,113 @@ public class MainWindow : Window
                     var songInfo = player.GetSongInfo();
                     if (songInfo.Success)
                     {
-                        label.Text = "Playing: " + songInfo.Value.Name + $" {songInfo.Value.CurrentTime}/{songInfo.Value.TotalTimeInSeconds}";
+                        // TODO: Timer when seconds < 10
+                        var timer = $" {songInfo.Value.CurrentTime / 60}:{songInfo.Value.CurrentTime % 60} / {songInfo.Value.TotalTimeInSeconds / 60}:{songInfo.Value.TotalTimeInSeconds % 60}";
+                        label.Text = "Playing: " + songInfo.Value.Name + $" {timer}";
                         Application.Refresh();
                     }
                     else
                     {
                         label.Text = songInfo.Error;
                     }
+
+                    if (songInfo.Value.CurrentTime >= songInfo.Value.TotalTimeInSeconds)
+                    {
+                        // play next song
+                        player.Load(playlist[musicList.SelectedItem + 1].FullName);
+                        musicList.SelectedItem = musicList.SelectedItem + 1;
+                        player.Play();
+
+                    }
                     return true;
                 });
-
             }
             else
             {
-                button.Text = "|>";
+                playPauseButton.Text = "|>";
                 player.Pause();
             }
         };
 
-        return button;
+        return playPauseButton;
     }
 
-    private IEnumerable<string> GetMusicList(string directoryPath)
+    private Button InitBackButton()
+    {
+        backButton = new Button()
+        {
+            Text = "<<",
+            X = Pos.Left(playPauseButton) - (4 + 6),
+            Y = Pos.Bottom(this) - 4,
+            Height = 1,
+        };
+
+
+        backButton.Accept += (sender, e) =>
+        {
+            var currentTime = player.GetSongInfo().Value.CurrentTime;
+            player.ChangeCurrentSongTime(currentTime - 10);
+        };
+
+        return backButton;
+    }
+
+    private Button InitForwardButton()
+    {
+        forwardButton = new Button()
+        {
+            Text = ">>",
+            X = Pos.Right(playPauseButton) + 4,
+            Y = Pos.Bottom(this) - 4,
+            Height = 1,
+        };
+        forwardButton.Accept += (sender, e) =>
+        {
+            var currentTime = player.GetSongInfo().Value.CurrentTime;
+            player.ChangeCurrentSongTime(currentTime + 10);
+        };
+        return forwardButton;
+    }
+    private Button InitPreviousSongButton()
+    {
+        previousSongButton = new Button()
+        {
+            Text = "<",
+            X = Pos.Left(backButton) - (4 + 6),
+            Y = Pos.Bottom(this) - 4,
+            Height = 1,
+        };
+
+        previousSongButton.Accept += (sender, e) =>
+        {
+            player.Load(playlist[musicList.SelectedItem - 1].FullName);
+            musicList.SelectedItem = musicList.SelectedItem - 1;
+            player.Play();
+        };
+
+        return previousSongButton;
+    }
+
+    private Button InitNextSongButton()
+    {
+        nextSongButton = new Button()
+        {
+            Text = ">",
+            X = Pos.Right(forwardButton) + 4,
+            Y = Pos.Bottom(this) - 4,
+            Height = 1,
+        };
+
+        nextSongButton.Accept += (sender, e) =>
+        {
+            player.Load(playlist[musicList.SelectedItem + 1].FullName);
+            musicList.SelectedItem = musicList.SelectedItem + 1;
+            player.Play();
+        };
+
+        return nextSongButton;
+    }
+    private static IEnumerable<FileInfo> GetMusicList(string directoryPath)
     {
         var d = new DirectoryInfo(directoryPath);
 
@@ -152,7 +251,7 @@ public class MainWindow : Window
 
         foreach (FileInfo file in Files)
         {
-            yield return file.Name;
+            yield return file;
         }
     }
 }
