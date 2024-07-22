@@ -50,6 +50,7 @@ public class MainWindow : Window
         musicList.OpenSelectedItem += (sender, e) =>
         {
             var song = e.Value.ToString();
+            player.Load(x + song);
             var songInfo = player.GetSongInfo();
             if (songInfo.Success)
             {
@@ -116,6 +117,22 @@ public class MainWindow : Window
             {
                 button.Text = "||";
                 player.Play();
+
+                Application.AddTimeout(TimeSpan.FromSeconds(1), () =>
+                {
+                    var songInfo = player.GetSongInfo();
+                    if (songInfo.Success)
+                    {
+                        label.Text = "Playing: " + songInfo.Value.Name + $" {songInfo.Value.CurrentTime}/{songInfo.Value.TotalTimeInSeconds}";
+                        Application.Refresh();
+                    }
+                    else
+                    {
+                        label.Text = songInfo.Error;
+                    }
+                    return true;
+                });
+
             }
             else
             {

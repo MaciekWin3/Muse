@@ -10,4 +10,5 @@ public interface IPlayer
     Result Stop();
     Result SetVolume(int percent);
     Result<SongInfo> GetSongInfo();
+    void Dispose();
 }

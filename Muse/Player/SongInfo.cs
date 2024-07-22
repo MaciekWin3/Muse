@@ -4,8 +4,8 @@ namespace Muse.Player
 {
     public struct SongInfo(AudioFileReader audioFileReader)
     {
-        public string Name => audioFileReader.FileName;
-        public double TotalTimeInSeconds => audioFileReader.TotalTime.TotalSeconds;
-        public double CurrentTime => audioFileReader.CurrentTime.Seconds;
+        public readonly string Name => Path.GetFileName(audioFileReader.FileName);
+        public readonly double TotalTimeInSeconds => audioFileReader.TotalTime.TotalSeconds;
+        public readonly double CurrentTime => (audioFileReader.CurrentTime.Hours * 60 * 60) + (audioFileReader.CurrentTime.Minutes * 60) + audioFileReader.CurrentTime.Seconds;
     }
 }
