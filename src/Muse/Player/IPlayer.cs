@@ -1,6 +1,6 @@
-using Muse.Player.Utils;
+using Muse.Utils;
 
-namespace Muse.Player.Interfaces;
+namespace Muse.Player;
 
 public interface IPlayer
 {

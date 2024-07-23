@@ -1,4 +1,4 @@
-﻿namespace Muse.Player.Utils
+﻿namespace Muse.Utils
 {
     public class Result
     {

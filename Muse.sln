@@ -6,6 +6,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Muse", "src\Muse\Muse.cspro
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8E9C0DE2-E752-44F1-83D8-28714CE1097F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9DEB6A59-6250-448A-A2F0-A2A37FE8980D}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		.github\workflows\build.yml = .github\workflows\build.yml
+		.github\dependabot.yml = .github\dependabot.yml
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{BF761548-3C16-4237-A2AD-010DE4E08460}"
+	ProjectSection(SolutionItems) = preProject
+		docs\TODO.md = docs\TODO.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,5 +35,9 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{CA961F64-7C3C-47D9-B5E3-7E3F98C6678D} = {8E9C0DE2-E752-44F1-83D8-28714CE1097F}
+		{BF761548-3C16-4237-A2AD-010DE4E08460} = {9DEB6A59-6250-448A-A2F0-A2A37FE8980D}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {37C4204C-026F-45C3-BD68-EC1540BE0004}
 	EndGlobalSection
 EndGlobal
