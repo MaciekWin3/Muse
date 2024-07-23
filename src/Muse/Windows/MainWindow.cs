@@ -12,9 +12,11 @@ public class MainWindow : Window
 
     private readonly IPlayer player;
 
+    private FrameView musicListFrame = null!;
     private ListView musicList = null!;
 
     // Buttons
+    private FrameView buttonsFrame = null!;
     private Button playPauseButton = null!;
     private Button forwardButton = null!;
     private Button backButton = null!;
@@ -35,18 +37,25 @@ public class MainWindow : Window
 
     public void InitControls()
     {
-        Add(InitMusicList());
+        var musicList = InitMusicListFrame();
+        var frame = InitMusicListFrame();
+        frame.Add(InitMusicList());
+        Add(frame);
+        //Add(InitMusicList());
         Add(InitLabel("Hello, World!"));
 
-        // Buttons
-        Add(InitPlayPauseButton());
-        Add(InitForwardButton());
-        Add(InitBackButton());
-        Add(InitNextSongButton());
-        Add(InitPreviousSongButton());
-
-        Add(InitProgressBar());
         Add(InitVolumeSlider());
+        Add(InitProgressBar());
+
+        // Buttons
+        var buttonsFrame = InitButtonsFrameView();
+        var x = InitPlayPauseButton();
+        buttonsFrame.Add(InitPlayPauseButton());
+        buttonsFrame.Add(InitForwardButton());
+        buttonsFrame.Add(InitBackButton());
+        buttonsFrame.Add(InitNextSongButton());
+        buttonsFrame.Add(InitPreviousSongButton());
+        Add(buttonsFrame);
     }
 
     public void InitStyles()
@@ -57,14 +66,26 @@ public class MainWindow : Window
         Height = Dim.Fill();
     }
 
+    private FrameView InitMusicListFrame()
+    {
+        musicListFrame = new FrameView()
+        {
+            Title = "Music List",
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(),
+            Height = 8,
+        };
+
+        return musicListFrame;
+    }
+
     private ListView InitMusicList()
     {
         musicList = new ListView()
         {
-            X = 1,
-            Y = 1,
             Width = Dim.Fill(),
-            Height = 5,
+            Height = Dim.Fill(),
             Source = new ListWrapper<string>(new ObservableCollection<string>(playlist.Select(f => f.Name)))
         };
 
@@ -94,7 +115,7 @@ public class MainWindow : Window
         {
             Text = text,
             X = 1,
-            Y = Pos.Bottom(musicList),
+            Y = Pos.Bottom(musicListFrame),
             Height = 1,
         };
         return label;
@@ -106,8 +127,9 @@ public class MainWindow : Window
         //var options = Enumerable.Range(1, 100).Cast<object>().ToList();
         volumeSlider = new Slider(options)
         {
+            Title = "Volume",
             X = Pos.Center(),
-            Y = Pos.Top(progressBar) - 4,
+            Y = Pos.Bottom(musicListFrame),
             Width = Dim.Fill(),
             Type = SliderType.Single,
             UseMinimumSize = false,
@@ -129,8 +151,9 @@ public class MainWindow : Window
     {
         progressBar = new ProgressBar()
         {
+            Title = "Progress",
             X = 0,
-            Y = Pos.Top(playPauseButton) - 4,
+            Y = Pos.Bottom(volumeSlider),
             Width = Dim.Fill(),
             Fraction = 0,
             BorderStyle = LineStyle.Rounded,
@@ -140,6 +163,18 @@ public class MainWindow : Window
         return progressBar;
     }
 
+    private FrameView InitButtonsFrameView()
+    {
+        buttonsFrame = new FrameView()
+        {
+            Title = "Controls",
+            X = 0,
+            Y = Pos.Bottom(progressBar),
+            Width = Dim.Fill(),
+            Height = 3,
+        };
+        return buttonsFrame;
+    }
 
     private Button InitPlayPauseButton()
     {
@@ -147,8 +182,6 @@ public class MainWindow : Window
         {
             Text = "||",
             X = Pos.Center(),
-            //Y = Pos.Bottom(this) - 4,
-            Y = Pos.Bottom(this) - 4,
             Height = 1,
         };
 
@@ -201,7 +234,6 @@ public class MainWindow : Window
         {
             Text = "<",
             X = Pos.Left(playPauseButton) - (4 + 6),
-            Y = Pos.Bottom(this) - 4,
             Height = 1,
         };
 
@@ -228,7 +260,6 @@ public class MainWindow : Window
         {
             Text = ">",
             X = Pos.Right(playPauseButton) + 4,
-            Y = Pos.Bottom(this) - 4,
             Height = 1,
         };
         forwardButton.Accept += (sender, e) =>
@@ -244,7 +275,6 @@ public class MainWindow : Window
         {
             Text = "<<",
             X = Pos.Left(backButton) - (4 + 6),
-            Y = Pos.Bottom(this) - 4,
             Height = 1,
         };
 
@@ -271,7 +301,6 @@ public class MainWindow : Window
         {
             Text = ">>",
             X = Pos.Right(forwardButton) + 4,
-            Y = Pos.Bottom(this) - 4,
             Height = 1,
         };
 
