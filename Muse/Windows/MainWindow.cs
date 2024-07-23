@@ -6,19 +6,23 @@ namespace Muse.Windows;
 
 public class MainWindow : Window
 {
-    // TODO: Checes if next/preious back/forward is avilable
+    // TODO: Check if next/preious back/forward is avilable
     // TODO: Remove hardcoded path
     private readonly static string MUSIC_DIRECTORY = @"C:\\Users\\macie\\Music\\Miszmasz\\";
 
     private readonly IPlayer player;
+
+    private ListView musicList = null!;
+
     private Button playPauseButton = null!;
     private Button forwardButton = null!;
     private Button backButton = null!;
     private Button nextSongButton = null!;
     private Button previousSongButton = null!;
+
     private Label label = null!;
+    private ProgressBar progressBar = null!;
     private Slider volumeSlider = null!;
-    private ListView musicList = null!;
 
     private readonly List<FileInfo> playlist = GetMusicList(MUSIC_DIRECTORY).ToList();
     public MainWindow(IPlayer player)
@@ -32,7 +36,10 @@ public class MainWindow : Window
     {
         Add(InitMusicList());
         Add(InitLabel("Hello, World!"));
+
         Add(InitVolumeSlider());
+        Add(InitProgressBar());
+
         // Buttons
         Add(InitPlayPauseButton());
         Add(InitForwardButton());
@@ -114,6 +121,23 @@ public class MainWindow : Window
     }
 
 
+
+    private ProgressBar InitProgressBar()
+    {
+        progressBar = new ProgressBar()
+        {
+            X = 1,
+            Y = Pos.Bottom(volumeSlider),
+            Width = Dim.Fill(),
+            Fraction = 0,
+            BorderStyle = LineStyle.Rounded,
+            ProgressBarStyle = ProgressBarStyle.Continuous,
+        };
+
+        return progressBar;
+    }
+
+
     private Button InitPlayPauseButton()
     {
         playPauseButton = new Button()
@@ -132,11 +156,12 @@ public class MainWindow : Window
                 playPauseButton.Text = "||";
                 player.Play();
 
-                Application.AddTimeout(TimeSpan.FromSeconds(1), () =>
+                Application.AddTimeout(TimeSpan.FromSeconds(0.01), () =>
                 {
                     var songInfo = player.GetSongInfo();
                     if (songInfo.Success)
                     {
+                        progressBar.Fraction = (float)songInfo.Value.CurrentTime / songInfo.Value.TotalTimeInSeconds;
                         // TODO: Timer when seconds < 10
                         var timer = $" {songInfo.Value.CurrentTime / 60}:{songInfo.Value.CurrentTime % 60} / {songInfo.Value.TotalTimeInSeconds / 60}:{songInfo.Value.TotalTimeInSeconds % 60}";
                         label.Text = "Playing: " + songInfo.Value.Name + $" {timer}";
@@ -151,7 +176,7 @@ public class MainWindow : Window
                     {
                         // play next song
                         player.Load(playlist[musicList.SelectedItem + 1].FullName);
-                        musicList.SelectedItem = musicList.SelectedItem + 1;
+                        musicList.SelectedItem++;
                         player.Play();
 
                     }
@@ -172,7 +197,7 @@ public class MainWindow : Window
     {
         backButton = new Button()
         {
-            Text = "<<",
+            Text = "<",
             X = Pos.Left(playPauseButton) - (4 + 6),
             Y = Pos.Bottom(this) - 4,
             Height = 1,
@@ -192,7 +217,7 @@ public class MainWindow : Window
     {
         forwardButton = new Button()
         {
-            Text = ">>",
+            Text = ">",
             X = Pos.Right(playPauseButton) + 4,
             Y = Pos.Bottom(this) - 4,
             Height = 1,
@@ -208,7 +233,7 @@ public class MainWindow : Window
     {
         previousSongButton = new Button()
         {
-            Text = "<",
+            Text = "<<",
             X = Pos.Left(backButton) - (4 + 6),
             Y = Pos.Bottom(this) - 4,
             Height = 1,
@@ -217,7 +242,7 @@ public class MainWindow : Window
         previousSongButton.Accept += (sender, e) =>
         {
             player.Load(playlist[musicList.SelectedItem - 1].FullName);
-            musicList.SelectedItem = musicList.SelectedItem - 1;
+            musicList.SelectedItem--;
             player.Play();
         };
 
@@ -228,7 +253,7 @@ public class MainWindow : Window
     {
         nextSongButton = new Button()
         {
-            Text = ">",
+            Text = ">>",
             X = Pos.Right(forwardButton) + 4,
             Y = Pos.Bottom(this) - 4,
             Height = 1,
@@ -237,7 +262,7 @@ public class MainWindow : Window
         nextSongButton.Accept += (sender, e) =>
         {
             player.Load(playlist[musicList.SelectedItem + 1].FullName);
-            musicList.SelectedItem = musicList.SelectedItem + 1;
+            musicList.SelectedItem++;
             player.Play();
         };
 
