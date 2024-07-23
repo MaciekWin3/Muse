@@ -9,6 +9,7 @@ public class App : Toplevel
 {
     private readonly IPlayer player;
     private MenuBar menuBar = null!;
+    private StatusBar statusBar = null!;
 
     public App(IPlayer player)
     {
@@ -19,6 +20,7 @@ public class App : Toplevel
     {
         Application.Init();
         Add(InitMenuBar());
+        Add(InitStatusBar());
         var win = new MainWindow(player);
         Add(win);
         Application.Run(this);
@@ -44,6 +46,18 @@ public class App : Toplevel
         };
 
         return menuBar;
+    }
+
+    private StatusBar InitStatusBar()
+    {
+        statusBar = new StatusBar();
+        statusBar.Add(new Shortcut()
+        {
+            Title = "Quit",
+            Key = Application.QuitKey,
+        });
+
+        return statusBar;
     }
 
     private void ShowAsciiArt()
