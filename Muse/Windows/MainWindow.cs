@@ -14,6 +14,7 @@ public class MainWindow : Window
 
     private ListView musicList = null!;
 
+    // Buttons
     private Button playPauseButton = null!;
     private Button forwardButton = null!;
     private Button backButton = null!;
@@ -37,15 +38,15 @@ public class MainWindow : Window
         Add(InitMusicList());
         Add(InitLabel("Hello, World!"));
 
-        Add(InitVolumeSlider());
-        Add(InitProgressBar());
-
         // Buttons
         Add(InitPlayPauseButton());
         Add(InitForwardButton());
         Add(InitBackButton());
         Add(InitNextSongButton());
         Add(InitPreviousSongButton());
+
+        Add(InitProgressBar());
+        Add(InitVolumeSlider());
     }
 
     public void InitStyles()
@@ -102,12 +103,16 @@ public class MainWindow : Window
     private Slider InitVolumeSlider()
     {
         var options = new List<object> { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 95, 100 };
+        //var options = Enumerable.Range(1, 100).Cast<object>().ToList();
         volumeSlider = new Slider(options)
         {
-            X = 1,
-            Y = Pos.Bottom(label),
+            X = Pos.Center(),
+            Y = Pos.Top(progressBar) - 4,
             Width = Dim.Fill(),
             Type = SliderType.Single,
+            UseMinimumSize = false,
+            BorderStyle = LineStyle.Rounded,
+            ShowEndSpacing = false,
             //Orientation = Orientation.Vertical,
         };
 
@@ -120,14 +125,12 @@ public class MainWindow : Window
         return volumeSlider;
     }
 
-
-
     private ProgressBar InitProgressBar()
     {
         progressBar = new ProgressBar()
         {
-            X = 1,
-            Y = Pos.Bottom(volumeSlider),
+            X = 0,
+            Y = Pos.Top(playPauseButton) - 4,
             Width = Dim.Fill(),
             Fraction = 0,
             BorderStyle = LineStyle.Rounded,
@@ -174,7 +177,6 @@ public class MainWindow : Window
 
                     if (songInfo.Value.CurrentTime >= songInfo.Value.TotalTimeInSeconds)
                     {
-                        // play next song
                         player.Load(playlist[musicList.SelectedItem + 1].FullName);
                         musicList.SelectedItem++;
                         player.Play();
@@ -207,7 +209,14 @@ public class MainWindow : Window
         backButton.Accept += (sender, e) =>
         {
             var currentTime = player.GetSongInfo().Value.CurrentTime;
-            player.ChangeCurrentSongTime(currentTime - 10);
+            if (currentTime - 10 < 0)
+            {
+                player.ChangeCurrentSongTime(0);
+            }
+            else
+            {
+                player.ChangeCurrentSongTime(currentTime - 10);
+            }
         };
 
         return backButton;
@@ -241,9 +250,16 @@ public class MainWindow : Window
 
         previousSongButton.Accept += (sender, e) =>
         {
-            player.Load(playlist[musicList.SelectedItem - 1].FullName);
-            musicList.SelectedItem--;
-            player.Play();
+            if (musicList.SelectedItem - 1 < 0)
+            {
+                MessageBox.ErrorQuery("Error", "No previous song", "OK");
+            }
+            else
+            {
+                musicList.SelectedItem--;
+                player.Load(playlist[musicList.SelectedItem].FullName);
+                player.Play();
+            }
         };
 
         return previousSongButton;
@@ -261,7 +277,16 @@ public class MainWindow : Window
 
         nextSongButton.Accept += (sender, e) =>
         {
-            player.Load(playlist[musicList.SelectedItem + 1].FullName);
+            if (musicList.SelectedItem + 1 < playlist.Count)
+            {
+                musicList.SelectedItem++;
+                player.Load(playlist[musicList.SelectedItem].FullName);
+            }
+            else
+            {
+                musicList.SelectedItem = 0;
+                player.Load(playlist[musicList.SelectedItem].FullName);
+            }
             musicList.SelectedItem++;
             player.Play();
         };
