@@ -1,4 +1,4 @@
-﻿using Muse.Player.Interfaces;
+﻿using Muse.Player;
 using System.Collections.ObjectModel;
 using Terminal.Gui;
 

@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Hosting;
 using Muse;
 using Muse.Player;
-using Muse.Player.Interfaces;
 
 using IHost host = CreateHostBuilder(args).Build();
 using var scope = host.Services.CreateScope();
