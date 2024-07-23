@@ -1,6 +1,10 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Muse", "Muse\Muse.csproj", "{CA961F64-7C3C-47D9-B5E3-7E3F98C6678D}"
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35004.147
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Muse", "src\Muse\Muse.csproj", "{CA961F64-7C3C-47D9-B5E3-7E3F98C6678D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8E9C0DE2-E752-44F1-83D8-28714CE1097F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,5 +16,11 @@ Global
 		{CA961F64-7C3C-47D9-B5E3-7E3F98C6678D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA961F64-7C3C-47D9-B5E3-7E3F98C6678D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CA961F64-7C3C-47D9-B5E3-7E3F98C6678D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CA961F64-7C3C-47D9-B5E3-7E3F98C6678D} = {8E9C0DE2-E752-44F1-83D8-28714CE1097F}
 	EndGlobalSection
 EndGlobal
