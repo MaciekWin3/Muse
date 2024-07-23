@@ -12,7 +12,4 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0-preview.6.24327.7" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Player\Interfaces\" />
-  </ItemGroup>
 </Project>
