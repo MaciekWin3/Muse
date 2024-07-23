@@ -4,6 +4,20 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	<Authors>Maciej Winnik</Authors>
+	<Description>Terminal music player</Description>
+	<PackageVersion>0.1.0</PackageVersion>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<ProjectURL>https://github.com/MaciekWin3/Muse</ProjectURL>
+	<RepositoryURL>https://github.com/MaciekWin3/Muse</RepositoryURL>
+	<PackAsTool>true</PackAsTool>
+	<ToolCommandName>muse</ToolCommandName>
+	<PackageOutputPath>./nupkg</PackageOutputPath>
+	<PackageTags>Terminal TUI MP3 Music</PackageTags>
+	<Description>
+		Muse is terminal music player built with Terminal.Gui and NAudio on .NET platform.
+	</Description>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
