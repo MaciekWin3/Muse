@@ -56,6 +56,29 @@ public class MainWindow : Window
         buttonsFrame.Add(InitNextSongButton());
         buttonsFrame.Add(InitPreviousSongButton());
         Add(buttonsFrame);
+
+
+        Application.MouseEvent += (sender, e) =>
+        {
+            if (e.View is null)
+            {
+                return;
+            }
+            if (e.View is ProgressBar)
+            {
+                if (e.Flags == MouseFlags.Button1Clicked)
+                {
+                    var width = (float)e.View.Frame.Width;
+                    var position = (float)e.Position.X;
+                    var fraction = position / width;
+                    if (progressBar is not null)
+                    {
+                        progressBar.Fraction = fraction;
+                        player.ChangeCurrentSongTime((int)(fraction * player.GetSongInfo().Value.TotalTimeInSeconds));
+                    }
+                }
+            }
+        };
     }
 
     public void InitStyles()
