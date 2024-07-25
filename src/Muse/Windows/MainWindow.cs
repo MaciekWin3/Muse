@@ -1,4 +1,5 @@
 ﻿using Muse.Player;
+using NAudio.Wave;
 using System.Collections.ObjectModel;
 using Terminal.Gui;
 
@@ -114,19 +115,22 @@ public class MainWindow : Window
 
         musicList.OpenSelectedItem += (sender, e) =>
         {
+            if (player.State == PlaybackState.Stopped || player.State == PlaybackState.Paused)
+            {
+                if (playPauseButton is not null)
+                {
+                    playPauseButton.Text = "||";
+                }
+            }
             var song = e.Value.ToString();
             player.Load(MUSIC_DIRECTORY + song);
-            var songInfo = player.GetSongInfo();
-            if (songInfo.Success)
-            {
-                label.Text = "Playing: " + song + $" {songInfo.Value.TotalTimeInSeconds}";
-            }
-            else
-            {
-                label.Text = songInfo.Error;
-            }
-            player.Load(MUSIC_DIRECTORY + song);
             player.Play();
+
+            Application.AddTimeout(TimeSpan.FromSeconds(0.01), () =>
+            {
+                TrackSong();
+                return true;
+            });
         };
 
         return musicList;
@@ -213,33 +217,20 @@ public class MainWindow : Window
             if (playPauseButton.Text == "|>")
             {
                 playPauseButton.Text = "||";
-                player.Play();
-
-                Application.AddTimeout(TimeSpan.FromSeconds(0.01), () =>
+                var playerResult = player.Play();
+                if (playerResult.Success)
                 {
-                    var songInfo = player.GetSongInfo();
-                    if (songInfo.Success)
-                    {
-                        progressBar.Fraction = (float)songInfo.Value.CurrentTime / songInfo.Value.TotalTimeInSeconds;
-                        // TODO: Timer when seconds < 10
-                        var timer = $" {songInfo.Value.CurrentTime / 60}:{songInfo.Value.CurrentTime % 60} / {songInfo.Value.TotalTimeInSeconds / 60}:{songInfo.Value.TotalTimeInSeconds % 60}";
-                        label.Text = "Playing: " + songInfo.Value.Name + $" {timer}";
-                        Application.Refresh();
-                    }
-                    else
-                    {
-                        label.Text = songInfo.Error;
-                    }
 
-                    if (songInfo.Value.CurrentTime >= songInfo.Value.TotalTimeInSeconds)
+                    Application.AddTimeout(TimeSpan.FromSeconds(0.01), () =>
                     {
-                        player.Load(playlist[musicList.SelectedItem + 1].FullName);
-                        musicList.SelectedItem++;
-                        player.Play();
-
-                    }
-                    return true;
-                });
+                        TrackSong();
+                        return true;
+                    });
+                }
+                else
+                {
+                    MessageBox.ErrorQuery("Error", "Please select a song", "OK");
+                }
             }
             else
             {
@@ -345,6 +336,31 @@ public class MainWindow : Window
 
         return nextSongButton;
     }
+
+    private void TrackSong()
+    {
+        var songInfo = player.GetSongInfo();
+        if (songInfo.Success)
+        {
+            progressBar.Fraction = (float)songInfo.Value.CurrentTime / songInfo.Value.TotalTimeInSeconds;
+            // TODO: Timer when seconds < 10
+            var timer = $" {songInfo.Value.CurrentTime / 60}:{songInfo.Value.CurrentTime % 60} / {songInfo.Value.TotalTimeInSeconds / 60}:{songInfo.Value.TotalTimeInSeconds % 60}";
+            label.Text = "Playing: " + songInfo.Value.Name + $" {timer}";
+            Application.Refresh();
+        }
+        else
+        {
+            label.Text = songInfo.Error;
+        }
+
+        if (songInfo.Value.CurrentTime >= songInfo.Value.TotalTimeInSeconds)
+        {
+            player.Load(playlist[musicList.SelectedItem + 1].FullName);
+            musicList.SelectedItem++;
+            player.Play();
+        }
+    }
+
     private static IEnumerable<FileInfo> GetMusicList(string directoryPath)
     {
         var d = new DirectoryInfo(directoryPath);
