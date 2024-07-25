@@ -38,19 +38,8 @@ public class MainWindow : Window
 
     public void InitControls()
     {
-        var musicList = InitMusicListFrame();
-        var frame = InitMusicListFrame();
-        frame.Add(InitMusicList());
-        Add(frame);
-        //Add(InitMusicList());
-        Add(InitLabel("Hello, World!"));
-
-        Add(InitVolumeSlider());
-        Add(InitProgressBar());
-
         // Buttons
         var buttonsFrame = InitButtonsFrameView();
-        var x = InitPlayPauseButton();
         buttonsFrame.Add(InitPlayPauseButton());
         buttonsFrame.Add(InitForwardButton());
         buttonsFrame.Add(InitBackButton());
@@ -58,6 +47,13 @@ public class MainWindow : Window
         buttonsFrame.Add(InitPreviousSongButton());
         Add(buttonsFrame);
 
+        Add(InitProgressBar());
+        Add(InitVolumeSlider());
+
+        var musicListFrame = InitMusicListFrame();
+        musicListFrame.Add(InitMusicList());
+        Add(musicListFrame);
+        Add(InitLabel("Hello, World!"));
 
         Application.MouseEvent += (sender, e) =>
         {
@@ -98,7 +94,9 @@ public class MainWindow : Window
             X = 0,
             Y = 0,
             Width = Dim.Fill(),
-            Height = 8,
+            // TODO: Calculate height
+            Height = 11,
+            BorderStyle = LineStyle.Rounded,
         };
 
         return musicListFrame;
@@ -150,19 +148,20 @@ public class MainWindow : Window
 
     private Slider InitVolumeSlider()
     {
+        var heightOfVolumeSlider = 4;
         var options = new List<object> { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 95, 100 };
         //var options = Enumerable.Range(1, 100).Cast<object>().ToList();
         volumeSlider = new Slider(options)
         {
             Title = "Volume",
             X = Pos.Center(),
-            Y = Pos.Bottom(musicListFrame),
+            Y = Pos.Top(progressBar) - heightOfVolumeSlider,
+            Height = heightOfVolumeSlider,
             Width = Dim.Fill(),
             Type = SliderType.Single,
             UseMinimumSize = false,
             BorderStyle = LineStyle.Rounded,
             ShowEndSpacing = false,
-            //Orientation = Orientation.Vertical,
         };
 
         volumeSlider.OptionsChanged += (sender, e) =>
@@ -176,11 +175,14 @@ public class MainWindow : Window
 
     private ProgressBar InitProgressBar()
     {
+        int heightOfProgressBar = 3;
         progressBar = new ProgressBar()
         {
+
             Title = "Progress",
             X = 0,
-            Y = Pos.Bottom(volumeSlider),
+            Y = Pos.Top(buttonsFrame) - heightOfProgressBar,
+            Height = heightOfProgressBar,
             Width = Dim.Fill(),
             Fraction = 0,
             BorderStyle = LineStyle.Rounded,
@@ -196,7 +198,7 @@ public class MainWindow : Window
         {
             Title = "Controls",
             X = 0,
-            Y = Pos.Bottom(progressBar),
+            Y = Pos.Bottom(this) - 6,
             Width = Dim.Fill(),
             Height = 3,
         };
