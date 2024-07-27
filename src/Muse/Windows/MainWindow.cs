@@ -369,11 +369,15 @@ public class MainWindow : Window
         }
     }
 
+    // Utils
+
+
+
     private static IEnumerable<FileInfo> GetMusicList(string directoryPath)
     {
         var d = new DirectoryInfo(directoryPath);
 
-        FileInfo[] Files = d.GetFiles("*.mp3");
+        FileInfo[] Files = d.GetFiles("*.mp*");
 
         foreach (FileInfo file in Files)
         {
