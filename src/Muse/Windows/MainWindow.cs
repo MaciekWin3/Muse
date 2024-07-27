@@ -53,7 +53,7 @@ public class MainWindow : Window
         var musicListFrame = InitMusicListFrame();
         musicListFrame.Add(InitMusicList());
         Add(musicListFrame);
-        Add(InitLabel("Hello, World!"));
+        //Add(InitLabel("Hello, World!"));
 
         Application.MouseEvent += (sender, e) =>
         {
@@ -345,14 +345,20 @@ public class MainWindow : Window
         if (songInfo.Success)
         {
             progressBar.Fraction = (float)songInfo.Value.CurrentTime / songInfo.Value.TotalTimeInSeconds;
-            // TODO: Timer when seconds < 10
-            var timer = $" {songInfo.Value.CurrentTime / 60}:{songInfo.Value.CurrentTime % 60} / {songInfo.Value.TotalTimeInSeconds / 60}:{songInfo.Value.TotalTimeInSeconds % 60}";
-            label.Text = "Playing: " + songInfo.Value.Name + $" {timer}";
+            var currentMinutes = songInfo.Value.CurrentTime / 60;
+            var currentSeconds = songInfo.Value.CurrentTime % 60;
+            var totalMinutes = songInfo.Value.TotalTimeInSeconds / 60;
+            var totalSeconds = songInfo.Value.TotalTimeInSeconds % 60;
+            var formatedCurrentSeconds = currentSeconds < 10 ? $"0{currentSeconds}" : currentSeconds.ToString();
+            var formatedTotalSeconds = totalSeconds < 10 ? $"0{totalSeconds}" : totalSeconds.ToString();
+            var timer = $" {currentMinutes}:{formatedCurrentSeconds} / {totalMinutes}:{formatedTotalSeconds}";
+
+            progressBar.Title = "Playing: " + songInfo.Value.Name + $" {timer}";
             Application.Refresh();
         }
         else
         {
-            label.Text = songInfo.Error;
+            progressBar.Text = songInfo.Error;
         }
 
         if (songInfo.Value.CurrentTime >= songInfo.Value.TotalTimeInSeconds)
