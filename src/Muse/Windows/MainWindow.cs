@@ -28,12 +28,27 @@ public class MainWindow : Window
     private ProgressBar progressBar = null!;
     private Slider volumeSlider = null!;
 
-    private readonly List<FileInfo> playlist = GetMusicList(MUSIC_DIRECTORY).ToList();
+    private readonly FileSystemWatcher watcher = new();
+    private List<FileInfo> playlist = GetMusicList(MUSIC_DIRECTORY).ToList();
     public MainWindow(IPlayer player)
     {
+        Application.AddTimeout(TimeSpan.FromSeconds(1), () =>
+        {
+            watcher.Path = MUSIC_DIRECTORY;
+            watcher.NotifyFilter = NotifyFilters.LastWrite;
+            watcher.Filter = "*.*";
+            watcher.Changed += new FileSystemEventHandler(OnChanged);
+            watcher.EnableRaisingEvents = true;
+            return true;
+        });
         this.player = player;
         InitControls();
         InitStyles();
+    }
+
+    private void OnChanged(object sender, FileSystemEventArgs e)
+    {
+        playlist = GetMusicList(MUSIC_DIRECTORY).ToList();
     }
 
     public void InitControls()
