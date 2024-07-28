@@ -332,7 +332,6 @@ public class MainWindow : Window
                 musicList.SelectedItem = 0;
                 player.Load(playlist[musicList.SelectedItem].FullName);
             }
-            musicList.SelectedItem++;
             player.Play();
         };
 
