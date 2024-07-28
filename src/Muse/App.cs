@@ -1,4 +1,5 @@
 using Muse.Player;
+using Muse.Utils;
 using Muse.Windows;
 using System.Text;
 using Terminal.Gui;
@@ -97,15 +98,26 @@ public class App : Toplevel
             Width = Dim.Fill(),
         };
 
-        var spinnerView = new SpinnerView { X = Pos.Bottom(urlTextField) + 1, Y = 0, Visible = false };
+        var spinnerView = new SpinnerView
+        {
+            X = Pos.Bottom(urlTextField) + 1,
+            Y = Pos.Center(),
+            Visible = false
+        };
 
-        button.Accept += (s, e) =>
+        button.Accept += async (s, e) =>
         {
             spinnerView.Visible = true;
+            spinnerView.AutoSpin = true;
             var url = urlTextField.Text;
-            SaveVideoToDisk(url);
+            var result = await SaveVideoToDisk(url);
+            if (result.IsFailure)
+            {
+                MessageBox.ErrorQuery("Error", result.Error, "Ok");
+            }
             Application.Refresh();
             spinnerView.Visible = false;
+            spinnerView.AutoSpin = false;
         };
 
         var dialog = new Dialog()
@@ -115,14 +127,23 @@ public class App : Toplevel
             Height = Dim.Percent(50),
         };
         dialog.Add(urlTextField);
+        dialog.Add(spinnerView);
         dialog.AddButton(button);
         Application.Run(dialog);
     }
 
-    public void SaveVideoToDisk(string link)
+    public async Task<Result> SaveVideoToDisk(string link)
     {
         var youTube = YouTube.Default;
-        var video = youTube.GetVideo(link);
-        File.WriteAllBytes(MUSIC_DIRECTORY + video.FullName, video.GetBytes());
+        try
+        {
+            var video = await youTube.GetVideoAsync(link);
+            File.WriteAllBytes(MUSIC_DIRECTORY + video.FullName, video.GetBytes());
+        }
+        catch (Exception e)
+        {
+            return Result.Fail(e.Message);
+        }
+        return Result.Ok();
     }
 }
