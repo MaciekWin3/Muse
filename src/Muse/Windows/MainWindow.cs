@@ -354,7 +354,8 @@ public class MainWindow : Window
             var timer = $" {currentMinutes}:{formatedCurrentSeconds} / {totalMinutes}:{formatedTotalSeconds}";
 
             progressBar.Title = "Playing: " + songInfo.Value.Name + $" {timer}";
-            Application.Refresh();
+            // TODO: Check if refresh is needed and how to make progress bar refresh smoother
+            //Application.Refresh();
         }
         else
         {
