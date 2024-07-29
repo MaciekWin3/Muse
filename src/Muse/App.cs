@@ -86,38 +86,34 @@ public class App : Toplevel
 
     private void ShowDownloadDialog()
     {
-        var button = new Button()
+        var urlLabel = new Label()
         {
-            Title = "Download",
+            Title = "YouTube URL: ",
+            X = 1,
+            Y = 1,
         };
 
         var urlTextField = new TextField()
         {
             X = 1,
-            Y = 1,
-            Width = Dim.Fill(),
+            Y = 2,
+            Width = Dim.Fill() - 5,
         };
 
         var spinnerView = new SpinnerView
         {
-            X = Pos.Bottom(urlTextField) + 1,
-            Y = Pos.Center(),
+            X = Pos.Right(urlTextField) + 2,
+            Y = 2,
             Visible = false
         };
 
-        button.Accept += async (s, e) =>
+        var textLabelSuccess = new Label()
         {
-            spinnerView.Visible = true;
-            spinnerView.AutoSpin = true;
-            var url = urlTextField.Text;
-            var result = await SaveVideoToDisk(url);
-            if (result.IsFailure)
-            {
-                MessageBox.ErrorQuery("Error", result.Error, "Ok");
-            }
-            Application.Refresh();
-            spinnerView.Visible = false;
-            spinnerView.AutoSpin = false;
+            Title = "Downloaded successfully!",
+            X = Pos.Center(),
+            Y = Pos.Center(),
+            Visible = false,
+            ColorScheme = new(new Terminal.Gui.Attribute(Color.Green, Color.Black))
         };
 
         var dialog = new Dialog()
@@ -126,9 +122,51 @@ public class App : Toplevel
             Width = Dim.Percent(50),
             Height = Dim.Percent(50),
         };
+
+        var downloadButton = new Button()
+        {
+            Title = "Download",
+        };
+
+        // Download file from YouTube
+        downloadButton.Accept += async (s, e) =>
+        {
+            // Preparation 
+            textLabelSuccess.Visible = false;
+            spinnerView.Visible = true;
+            spinnerView.AutoSpin = true;
+            var url = urlTextField.Text;
+
+            // Download
+            var result = await SaveVideoToDisk(url);
+            if (result.IsFailure)
+            {
+                MessageBox.ErrorQuery("Error", result.Error, "Ok");
+            }
+
+            // Cleanup
+            Application.Refresh();
+            spinnerView.Visible = false;
+            spinnerView.AutoSpin = false;
+            urlTextField.Text = "";
+            textLabelSuccess.Visible = true;
+        };
+
+        var exitButton = new Button()
+        {
+            Title = "Exit",
+            X = Pos.Center(),
+            Y = Pos.Percent(90),
+        };
+
+        exitButton.Accept += (s, e) => dialog.Running = false;
+
+        dialog.Add(urlLabel);
         dialog.Add(urlTextField);
         dialog.Add(spinnerView);
-        dialog.AddButton(button);
+        dialog.Add(textLabelSuccess);
+        dialog.AddButton(downloadButton);
+        dialog.AddButton(exitButton);
         Application.Run(dialog);
     }
 
