@@ -149,18 +149,6 @@ public sealed class MainWindow : Window
         return musicList;
     }
 
-    private Label InitLabel(string text)
-    {
-        label = new Label()
-        {
-            Text = text,
-            X = 1,
-            Y = Pos.Bottom(musicListFrame),
-            Height = 1,
-        };
-        return label;
-    }
-
     private Slider InitVolumeSlider()
     {
         var heightOfVolumeSlider = 4;
