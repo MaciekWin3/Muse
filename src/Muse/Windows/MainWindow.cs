@@ -5,7 +5,7 @@ using Terminal.Gui;
 
 namespace Muse.Windows;
 
-public class MainWindow : Window
+public sealed class MainWindow : Window
 {
     // TODO: Check if next/preious back/forward is avilable
     // TODO: Remove hardcoded path
