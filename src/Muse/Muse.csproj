@@ -22,7 +22,7 @@
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="Terminal.Gui" Version="2.0.0-prealpha.1829" />
+    <PackageReference Include="Terminal.Gui" Version="2.0.0-v2-develop.2165" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0-preview.6.24327.7" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="VideoLibrary" Version="3.2.5" />
