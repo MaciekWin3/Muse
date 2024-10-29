@@ -1,15 +1,17 @@
 using Muse.Player;
 using Muse.Utils;
 using Muse.Windows;
+using System.Diagnostics;
 using System.Text;
 using Terminal.Gui;
-using VideoLibrary;
+using YoutubeExplode;
+using YoutubeExplode.Videos.Streams;
 
 namespace Muse;
 
 public class App : Toplevel
 {
-    private readonly static string MUSIC_DIRECTORY = @"C:\\Users\\macie\\Music\\Miszmasz\\";
+    private readonly static string MUSIC_DIRECTORY = @"C:\Users\macie\Music\Miszmasz";
 
     private readonly IPlayer player;
     private MenuBar menuBar = null!;
@@ -97,7 +99,21 @@ public class App : Toplevel
         {
             X = 1,
             Y = 2,
-            Width = Dim.Fill() - 5,
+            Width = Dim.Fill()! - 5,
+        };
+
+        var nameLabel = new Label()
+        {
+            Title = "Song name: ",
+            X = 1,
+            Y = Pos.Bottom(urlTextField),
+        };
+
+        var nameTextField = new TextField()
+        {
+            X = 1,
+            Y = Pos.Bottom(nameLabel),
+            Width = Dim.Fill()! - 5,
         };
 
         var spinnerView = new SpinnerView
@@ -111,7 +127,7 @@ public class App : Toplevel
         {
             Title = "Downloaded successfully!",
             X = Pos.Center(),
-            Y = Pos.Center(),
+            Y = Pos.Bottom(nameTextField) + 1,
             Visible = false,
             ColorScheme = new(new Terminal.Gui.Attribute(Color.Green, Color.Black))
         };
@@ -136,9 +152,10 @@ public class App : Toplevel
             spinnerView.Visible = true;
             spinnerView.AutoSpin = true;
             var url = urlTextField.Text;
+            var songName = nameTextField.Text;
 
             // Download
-            var result = await SaveVideoToDisk(url);
+            var result = await SaveVideoToDisk(url, songName);
             if (result.IsFailure)
             {
                 MessageBox.ErrorQuery("Error", result.Error, "Ok");
@@ -163,6 +180,8 @@ public class App : Toplevel
 
         dialog.Add(urlLabel);
         dialog.Add(urlTextField);
+        dialog.Add(nameLabel);
+        dialog.Add(nameTextField);
         dialog.Add(spinnerView);
         dialog.Add(textLabelSuccess);
         dialog.AddButton(downloadButton);
@@ -170,13 +189,21 @@ public class App : Toplevel
         Application.Run(dialog);
     }
 
-    public async Task<Result> SaveVideoToDisk(string link)
+    public async Task<Result> SaveVideoToDisk(string link, string name = null)
     {
-        var youTube = YouTube.Default;
+        var youtube = new YoutubeClient();
         try
         {
-            var video = await youTube.GetVideoAsync(link);
-            File.WriteAllBytes(MUSIC_DIRECTORY + video.FullName, video.GetBytes());
+            var videoInfo = await youtube.Videos.GetAsync(link);
+            if (!Directory.Exists(MUSIC_DIRECTORY))
+            {
+                Directory.CreateDirectory(MUSIC_DIRECTORY);
+            }
+            var streamManifest = await youtube.Videos.Streams.GetManifestAsync(link);
+            var streamInfo = streamManifest.GetAudioOnlyStreams().Where(s => s.Container == Container.Mp4).GetWithHighestBitrate();
+            var stream = await youtube.Videos.Streams.GetAsync(streamInfo);
+            Debug.WriteLine(videoInfo.Author);
+            await youtube.Videos.Streams.DownloadAsync(streamInfo, @$"{MUSIC_DIRECTORY}\{name ?? videoInfo.Title}.{streamInfo.Container}");
         }
         catch (Exception e)
         {
