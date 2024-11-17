@@ -155,7 +155,7 @@ public class App : Toplevel
             var songName = nameTextField.Text;
 
             // Download
-            var result = await SaveVideoToDisk(url, songName);
+            var result = await DownloadFromYoutube(url, songName);
             if (result.IsFailure)
             {
                 MessageBox.ErrorQuery("Error", result.Error, "Ok");
@@ -189,7 +189,7 @@ public class App : Toplevel
         Application.Run(dialog);
     }
 
-    public async Task<Result> SaveVideoToDisk(string link, string name = null)
+    public async Task<Result> DownloadFromYoutube(string link, string name = null!)
     {
         var youtube = new YoutubeClient();
         try

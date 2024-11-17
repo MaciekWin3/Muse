@@ -1,4 +1,5 @@
 ﻿using Muse.Player;
+using Muse.Utils;
 using NAudio.Wave;
 using System.Collections.ObjectModel;
 using Terminal.Gui;
@@ -10,7 +11,6 @@ public sealed class MainWindow : Window
     // TODO: Check if next/preious back/forward is avilable
     // TODO: Remove hardcoded path
     private readonly static string MUSIC_DIRECTORY = @"C:\\Users\\macie\\Music\\Miszmasz\\";
-
     private readonly IPlayer player;
 
     private FrameView musicListFrame = null!;
@@ -29,18 +29,11 @@ public sealed class MainWindow : Window
     private Slider volumeSlider = null!;
 
     private readonly FileSystemWatcher watcher = new();
-    private List<FileInfo> playlist = GetMusicList(MUSIC_DIRECTORY).ToList();
+    private List<FileInfo> playlist = MusicListHelper.GetMusicList(MUSIC_DIRECTORY).ToList();
+    private static int numberOfSongs = MusicListHelper.GetMusicList(MUSIC_DIRECTORY).ToList().Count();
+
     public MainWindow(IPlayer player)
     {
-        Application.AddTimeout(TimeSpan.FromSeconds(1), () =>
-        {
-            watcher.Path = MUSIC_DIRECTORY;
-            watcher.NotifyFilter = NotifyFilters.LastWrite;
-            watcher.Filter = "*.*";
-            watcher.Changed += new FileSystemEventHandler(OnChanged);
-            watcher.EnableRaisingEvents = true;
-            return true;
-        });
         this.player = player;
         InitControls();
         InitStyles();
@@ -48,7 +41,7 @@ public sealed class MainWindow : Window
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        playlist = GetMusicList(MUSIC_DIRECTORY).ToList();
+        playlist = MusicListHelper.GetMusicList(MUSIC_DIRECTORY).ToList();
     }
 
     public void InitControls()
@@ -66,9 +59,28 @@ public sealed class MainWindow : Window
         Add(InitVolumeSlider());
 
         var musicListFrame = InitMusicListFrame();
-        musicListFrame.Add(InitMusicList());
+        var musicList = InitMusicList();
+        musicListFrame.Add(musicList);
+
+        Application.AddTimeout(TimeSpan.FromSeconds(1), () =>
+        {
+            watcher.Path = MUSIC_DIRECTORY;
+            watcher.NotifyFilter = NotifyFilters.LastWrite;
+            watcher.Filter = "*.*";
+            watcher.Changed += new FileSystemEventHandler(OnChanged);
+            watcher.EnableRaisingEvents = true;
+            if (numberOfSongs != playlist.Count)
+            {
+                // TODO: Refresh when folder content changes
+                // TODO: Same volume after changing song
+                //numberOfSongs = playlist.Count;
+                musicList.SetSource(new ObservableCollection<string>(playlist.Select(f => f.Name)));
+                Application.Refresh();
+            }
+            return true;
+        });
+
         Add(musicListFrame);
-        //Add(InitLabel("Hello, World!"));
 
         Application.MouseEvent += (sender, e) =>
         {
@@ -369,22 +381,6 @@ public sealed class MainWindow : Window
             player.Load(playlist[musicList.SelectedItem + 1].FullName);
             musicList.SelectedItem++;
             player.Play();
-        }
-    }
-
-    // Utils
-
-
-
-    private static IEnumerable<FileInfo> GetMusicList(string directoryPath)
-    {
-        var d = new DirectoryInfo(directoryPath);
-
-        FileInfo[] Files = d.GetFiles("*.mp*");
-
-        foreach (FileInfo file in Files)
-        {
-            yield return file;
         }
     }
 }
