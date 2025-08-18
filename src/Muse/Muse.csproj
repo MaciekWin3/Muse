@@ -27,7 +27,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.6" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.6" />
     <PackageReference Include="VideoLibrary" Version="3.2.6" />
-    <PackageReference Include="YoutubeExplode" Version="6.4.4" />
-    <PackageReference Include="YoutubeExplode.Converter" Version="6.4.4" />
+    <PackageReference Include="YoutubeExplode" Version="6.5.4" />
+    <PackageReference Include="YoutubeExplode.Converter" Version="6.5.4" />
   </ItemGroup>
 </Project>
