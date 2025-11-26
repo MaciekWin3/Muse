@@ -9,20 +9,15 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Muse;
 
-public class App : Toplevel
+public class App(IPlayer player) : Toplevel
 {
     private readonly static string MUSIC_DIRECTORY = @"C:\Users\macie\Music\Miszmasz";
 
-    private readonly IPlayer player;
+    private readonly IPlayer player = player;
     private MenuBar menuBar = null!;
     private StatusBar statusBar = null!;
 
-    public App(IPlayer player)
-    {
-        this.player = player;
-    }
-
-    public void Run(string[] args)
+    public void Run()
     {
         Application.Init();
         Add(InitMenuBar());

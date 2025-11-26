@@ -4,6 +4,7 @@ using NAudio.Wave;
 using System.Collections.ObjectModel;
 using Terminal.Gui;
 
+
 namespace Muse.Windows;
 
 public sealed class MainWindow : Window
@@ -24,13 +25,19 @@ public sealed class MainWindow : Window
     private Button nextSongButton = null!;
     private Button previousSongButton = null!;
 
-    private Label label = null!;
     private ProgressBar progressBar = null!;
     private Slider volumeSlider = null!;
 
+    // explicit heights used across the UI so we can reuse them without calling internal Dim APIs
+    private const int ButtonsFrameHeight = 3;
+    private const int ProgressBarHeight = 3;
+    private const int VolumeSliderHeight = 4;
+
     private readonly FileSystemWatcher watcher = new();
-    private List<FileInfo> playlist = MusicListHelper.GetMusicList(MUSIC_DIRECTORY).ToList();
-    private static int numberOfSongs = MusicListHelper.GetMusicList(MUSIC_DIRECTORY).ToList().Count();
+    private static int numberOfSongs = MusicListHelper.GetMusicList(MUSIC_DIRECTORY).ToList().Count;
+
+    private List<FileInfo> Playlist { get; set; } = [.. MusicListHelper.GetMusicList(MUSIC_DIRECTORY)];
+
 
     public MainWindow(IPlayer player)
     {
@@ -41,18 +48,26 @@ public sealed class MainWindow : Window
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        playlist = MusicListHelper.GetMusicList(MUSIC_DIRECTORY).ToList();
+        Playlist = [.. MusicListHelper.GetMusicList(MUSIC_DIRECTORY)];
     }
 
     public void InitControls()
     {
         // Buttons
         var buttonsFrame = InitButtonsFrameView();
-        buttonsFrame.Add(InitPlayPauseButton());
-        buttonsFrame.Add(InitForwardButton());
-        buttonsFrame.Add(InitBackButton());
-        buttonsFrame.Add(InitNextSongButton());
-        buttonsFrame.Add(InitPreviousSongButton());
+
+        playPauseButton = InitPlayPauseButton();
+        forwardButton = InitForwardButton();
+        backButton = InitBackButton();
+        nextSongButton = InitNextSongButton();
+        previousSongButton = InitPreviousSongButton();
+
+        buttonsFrame.Add(previousSongButton);
+        buttonsFrame.Add(backButton);
+        buttonsFrame.Add(playPauseButton);
+        buttonsFrame.Add(forwardButton);
+        buttonsFrame.Add(nextSongButton);
+
         Add(buttonsFrame);
 
         Add(InitProgressBar());
@@ -60,6 +75,7 @@ public sealed class MainWindow : Window
 
         var musicListFrame = InitMusicListFrame();
         var musicList = InitMusicList();
+
         musicListFrame.Add(musicList);
 
         Application.AddTimeout(TimeSpan.FromSeconds(1), () =>
@@ -69,12 +85,12 @@ public sealed class MainWindow : Window
             watcher.Filter = "*.*";
             watcher.Changed += new FileSystemEventHandler(OnChanged);
             watcher.EnableRaisingEvents = true;
-            if (numberOfSongs != playlist.Count)
+            if (numberOfSongs != Playlist.Count)
             {
                 // TODO: Refresh when folder content changes
                 // TODO: Same volume after changing song
                 //numberOfSongs = playlist.Count;
-                musicList.SetSource(new ObservableCollection<string>(playlist.Select(f => f.Name)));
+                musicList.SetSource(new ObservableCollection<string>(Playlist.Select(f => f.Name)));
                 Application.Refresh();
             }
             return true;
@@ -98,11 +114,16 @@ public sealed class MainWindow : Window
                     if (progressBar is not null)
                     {
                         progressBar.Fraction = fraction;
-                        player.ChangeCurrentSongTime((int)(fraction * player.GetSongInfo().Value.TotalTimeInSeconds));
+                        var songInfo = player.GetSongInfo();
+                        if (songInfo.Success)
+                        {
+                            player.ChangeCurrentSongTime((int)(fraction * player.GetSongInfo().Value.TotalTimeInSeconds));
+                        }
                     }
                 }
             }
         };
+
     }
 
     public void InitStyles()
@@ -115,14 +136,29 @@ public sealed class MainWindow : Window
 
     private FrameView InitMusicListFrame()
     {
+        // Calculate reserved space taken by bottom fixed controls so the music list fills remaining area.
+        // These controls are created before this method is called in InitControls.
+        int bottomReserved = 0;
+        if (volumeSlider is not null)
+        {
+            bottomReserved += VolumeSliderHeight;
+        }
+        if (progressBar is not null)
+        {
+            bottomReserved += ProgressBarHeight;
+        }
+        if (buttonsFrame is not null)
+        {
+            bottomReserved += ButtonsFrameHeight;
+        }
+
         musicListFrame = new FrameView()
         {
             Title = "Music List",
             X = 0,
             Y = 0,
             Width = Dim.Fill(),
-            // TODO: Calculate height
-            Height = 11,
+            Height = Dim.Fill() - bottomReserved,
             BorderStyle = LineStyle.Rounded,
         };
 
@@ -135,7 +171,7 @@ public sealed class MainWindow : Window
         {
             Width = Dim.Fill(),
             Height = Dim.Fill(),
-            Source = new ListWrapper<string>(new ObservableCollection<string>(playlist.Select(f => f.Name)))
+            Source = new ListWrapper<string>(new ObservableCollection<string>(Playlist.Select(f => f.Name)))
         };
 
         musicList.OpenSelectedItem += (sender, e) =>
@@ -163,15 +199,13 @@ public sealed class MainWindow : Window
 
     private Slider InitVolumeSlider()
     {
-        var heightOfVolumeSlider = 4;
         var options = new List<object> { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 95, 100 };
-        //var options = Enumerable.Range(1, 100).Cast<object>().ToList();
         volumeSlider = new Slider(options)
         {
             Title = "Volume",
             X = Pos.Center(),
-            Y = Pos.Top(progressBar) - heightOfVolumeSlider,
-            Height = heightOfVolumeSlider,
+            Y = Pos.Top(progressBar) - VolumeSliderHeight,
+            Height = VolumeSliderHeight,
             Width = Dim.Fill(),
             Type = SliderType.Single,
             UseMinimumSize = false,
@@ -190,14 +224,13 @@ public sealed class MainWindow : Window
 
     private ProgressBar InitProgressBar()
     {
-        int heightOfProgressBar = 3;
         progressBar = new ProgressBar()
         {
 
             Title = "Progress",
             X = 0,
-            Y = Pos.Top(buttonsFrame) - heightOfProgressBar,
-            Height = heightOfProgressBar,
+            Y = Pos.Top(buttonsFrame) - ProgressBarHeight,
+            Height = ProgressBarHeight,
             Width = Dim.Fill(),
             Fraction = 0,
             BorderStyle = LineStyle.Rounded,
@@ -215,7 +248,7 @@ public sealed class MainWindow : Window
             X = 0,
             Y = Pos.Bottom(this) - 6,
             Width = Dim.Fill(),
-            Height = 3,
+            Height = ButtonsFrameHeight,
         };
         return buttonsFrame;
     }
@@ -300,6 +333,7 @@ public sealed class MainWindow : Window
         };
         return forwardButton;
     }
+
     private Button InitPreviousSongButton()
     {
         previousSongButton = new Button()
@@ -318,7 +352,7 @@ public sealed class MainWindow : Window
             else
             {
                 musicList.SelectedItem--;
-                player.Load(playlist[musicList.SelectedItem].FullName);
+                player.Load(Playlist[musicList.SelectedItem].FullName);
                 player.Play();
             }
         };
@@ -337,15 +371,15 @@ public sealed class MainWindow : Window
 
         nextSongButton.Accept += (sender, e) =>
         {
-            if (musicList.SelectedItem + 1 < playlist.Count)
+            if (musicList.SelectedItem + 1 < Playlist.Count)
             {
                 musicList.SelectedItem++;
-                player.Load(playlist[musicList.SelectedItem].FullName);
+                player.Load(Playlist[musicList.SelectedItem].FullName);
             }
             else
             {
                 musicList.SelectedItem = 0;
-                player.Load(playlist[musicList.SelectedItem].FullName);
+                player.Load(Playlist[musicList.SelectedItem].FullName);
             }
             player.Play();
         };
@@ -378,7 +412,7 @@ public sealed class MainWindow : Window
 
         if (songInfo.Value.CurrentTime >= songInfo.Value.TotalTimeInSeconds)
         {
-            player.Load(playlist[musicList.SelectedItem + 1].FullName);
+            player.Load(Playlist[musicList.SelectedItem + 1].FullName);
             musicList.SelectedItem++;
             player.Play();
         }

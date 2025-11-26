@@ -10,7 +10,7 @@ var services = scope.ServiceProvider;
 
 try
 {
-    services.GetRequiredService<App>().Run(args);
+    services.GetRequiredService<App>().Run();
 }
 catch (Exception ex)
 {
