@@ -2,27 +2,39 @@
 using Microsoft.Extensions.Hosting;
 using Muse;
 using Muse.Player;
+using Muse.Windows;
+using Terminal.Gui.App;
 
-using IHost host = CreateHostBuilder(args).Build();
+using var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((context, services) =>
+    {
+        services.AddSingleton<MuseApp>();
+        services.AddSingleton<IPlayer, Player>();
+    })
+    .Build();
+
 using var scope = host.Services.CreateScope();
-
 var services = scope.ServiceProvider;
 
 try
 {
-    services.GetRequiredService<App>().Run();
+    InitApp();
 }
 catch (Exception ex)
 {
     Console.Error.WriteLine(ex.Message);
 }
 
-static IHostBuilder CreateHostBuilder(string[] args)
+void InitApp()
 {
-    return Host.CreateDefaultBuilder(args)
-        .ConfigureServices((_, services) =>
-        {
-            services.AddSingleton<App>();
-            services.AddSingleton<IPlayer, Player>();
-        });
+    var museApp = services.GetRequiredService<MuseApp>();
+    Application.Init();
+
+    var menuBar = museApp.InitMenuBar();
+    var statusBar = museApp.InitStatusBar();
+    museApp.Add(menuBar, statusBar);
+    museApp.Add(new MainWindow(services.GetRequiredService<IPlayer>()));
+
+    Application.Run(museApp);
+    Application.Shutdown();
 }
