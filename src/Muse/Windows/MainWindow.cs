@@ -2,7 +2,11 @@
 using Muse.Utils;
 using NAudio.Wave;
 using System.Collections.ObjectModel;
-using Terminal.Gui;
+using Terminal.Gui.App;
+using Terminal.Gui.Drawing;
+using Terminal.Gui.Input;
+using Terminal.Gui.ViewBase;
+using Terminal.Gui.Views;
 
 
 namespace Muse.Windows;
@@ -30,6 +34,7 @@ public sealed class MainWindow : Window
 
     // explicit heights used across the UI so we can reuse them without calling internal Dim APIs
     private const int ButtonsFrameHeight = 3;
+    private const int ButtonsHeight = 2;
     private const int ProgressBarHeight = 3;
     private const int VolumeSliderHeight = 4;
 
@@ -91,14 +96,15 @@ public sealed class MainWindow : Window
                 // TODO: Same volume after changing song
                 //numberOfSongs = playlist.Count;
                 musicList.SetSource(new ObservableCollection<string>(Playlist.Select(f => f.Name)));
-                Application.Refresh();
+                // TODO: Check if refresh is needed
+                //App.Refresh();
             }
             return true;
         });
 
         Add(musicListFrame);
 
-        Application.MouseEvent += (sender, e) =>
+        Application.Mouse.MouseEvent += (sender, e) =>
         {
             if (e.View is null)
             {
@@ -131,7 +137,7 @@ public sealed class MainWindow : Window
         X = 0;
         Y = 1;
         Width = Dim.Fill();
-        Height = Dim.Fill();
+        Height = Dim.Fill() - 1;
     }
 
     private FrameView InitMusicListFrame()
@@ -203,7 +209,6 @@ public sealed class MainWindow : Window
         volumeSlider = new Slider(options)
         {
             Title = "Volume",
-            X = Pos.Center(),
             Y = Pos.Top(progressBar) - VolumeSliderHeight,
             Height = VolumeSliderHeight,
             Width = Dim.Fill(),
@@ -218,6 +223,8 @@ public sealed class MainWindow : Window
             var value = e.Options.FirstOrDefault().Key;
             player.SetVolume(value);
         };
+
+        volumeSlider.SetOption(10);
 
         return volumeSlider;
     }
@@ -259,10 +266,11 @@ public sealed class MainWindow : Window
         {
             Text = "||",
             X = Pos.Center(),
-            Height = 1,
+            Height = 2,
+            ShadowStyle = ShadowStyle.None
         };
 
-        playPauseButton.Accept += (sender, e) =>
+        playPauseButton.Accepting += (sender, e) =>
         {
             if (playPauseButton.Text == "|>")
             {
@@ -287,6 +295,7 @@ public sealed class MainWindow : Window
                 playPauseButton.Text = "|>";
                 player.Pause();
             }
+            e.Handled = true;
         };
 
         return playPauseButton;
@@ -298,11 +307,12 @@ public sealed class MainWindow : Window
         {
             Text = "<",
             X = Pos.Left(playPauseButton) - (4 + 6),
-            Height = 1,
+            Height = ButtonsHeight,
+            ShadowStyle = ShadowStyle.None
         };
 
 
-        backButton.Accept += (sender, e) =>
+        backButton.Accepting += (sender, e) =>
         {
             var currentTime = player.GetSongInfo().Value.CurrentTime;
             if (currentTime - 10 < 0)
@@ -313,6 +323,7 @@ public sealed class MainWindow : Window
             {
                 player.ChangeCurrentSongTime(currentTime - 10);
             }
+            e.Handled = true;
         };
 
         return backButton;
@@ -324,12 +335,14 @@ public sealed class MainWindow : Window
         {
             Text = ">",
             X = Pos.Right(playPauseButton) + 4,
-            Height = 1,
+            Height = ButtonsHeight,
+            ShadowStyle = ShadowStyle.None
         };
-        forwardButton.Accept += (sender, e) =>
+        forwardButton.Accepting += (sender, e) =>
         {
             var currentTime = player.GetSongInfo().Value.CurrentTime;
             player.ChangeCurrentSongTime(currentTime + 10);
+            e.Handled = true;
         };
         return forwardButton;
     }
@@ -340,10 +353,11 @@ public sealed class MainWindow : Window
         {
             Text = "<<",
             X = Pos.Left(backButton) - (4 + 6),
-            Height = 1,
+            Height = ButtonsHeight,
+            ShadowStyle = ShadowStyle.None
         };
 
-        previousSongButton.Accept += (sender, e) =>
+        previousSongButton.Accepting += (sender, e) =>
         {
             if (musicList.SelectedItem - 1 < 0)
             {
@@ -355,6 +369,7 @@ public sealed class MainWindow : Window
                 player.Load(Playlist[musicList.SelectedItem].FullName);
                 player.Play();
             }
+            e.Handled = true;
         };
 
         return previousSongButton;
@@ -366,10 +381,11 @@ public sealed class MainWindow : Window
         {
             Text = ">>",
             X = Pos.Right(forwardButton) + 4,
-            Height = 1,
+            Height = ButtonsHeight,
+            ShadowStyle = ShadowStyle.None
         };
 
-        nextSongButton.Accept += (sender, e) =>
+        nextSongButton.Accepting += (sender, e) =>
         {
             if (musicList.SelectedItem + 1 < Playlist.Count)
             {
@@ -382,6 +398,7 @@ public sealed class MainWindow : Window
                 player.Load(Playlist[musicList.SelectedItem].FullName);
             }
             player.Play();
+            e.Handled = true;
         };
 
         return nextSongButton;

@@ -1,49 +1,38 @@
 using Muse.Player;
 using Muse.Utils;
-using Muse.Windows;
 using System.Diagnostics;
 using System.Text;
-using Terminal.Gui;
+using Terminal.Gui.App;
+using Terminal.Gui.ViewBase;
+using Terminal.Gui.Views;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
 namespace Muse;
 
-public class App(IPlayer player) : Toplevel
+public class MuseApp(IPlayer player) : Toplevel
 {
     private readonly static string MUSIC_DIRECTORY = @"C:\Users\macie\Music\Miszmasz";
 
     private readonly IPlayer player = player;
-    private MenuBar menuBar = null!;
+    private MenuBarv2 menuBar = null!;
     private StatusBar statusBar = null!;
 
-    public void Run()
+    public MenuBarv2 InitMenuBar()
     {
-        Application.Init();
-        Add(InitMenuBar());
-        Add(InitStatusBar());
-        var win = new MainWindow(player);
-        Add(win);
-        Application.Run(this);
-        Application.Shutdown();
-        player.Dispose();
-    }
-
-    private MenuBar InitMenuBar()
-    {
-        menuBar = new MenuBar
+        menuBar = new MenuBarv2
         {
             Menus =
             [
-                new("_File", new MenuItem[]
+                new("_File", new MenuItemv2[]
                 {
                     new("_Quit", "", () => Application.RequestStop())
                 }),
-                new("_Help", new MenuItem[]
+                new("_Help", new MenuItemv2[]
                 {
                     new("_About", "", () => ShowAsciiArt())
                 }),
-                new("_Download", new MenuItem[]
+                new("_Download", new MenuItemv2[]
                 {
                     new("_From YT", "", () => ShowDownloadDialog())
                 })
@@ -53,13 +42,13 @@ public class App(IPlayer player) : Toplevel
         return menuBar;
     }
 
-    private StatusBar InitStatusBar()
+    public StatusBar InitStatusBar()
     {
         statusBar = new StatusBar();
         statusBar.Add(new Shortcut()
         {
             Title = "Quit",
-            Key = Application.QuitKey,
+            Key = Application.Keyboard.QuitKey,
         });
 
         return statusBar;
@@ -77,7 +66,7 @@ public class App(IPlayer player) : Toplevel
         sb.AppendLine(@" | |  | | |__| |____) | |____ ");
         sb.AppendLine(@" |_|  |_|\____/|_____/|______|");
         sb.AppendLine();
-        MessageBox.Query(50, 12, "About", sb.ToString(), "Ok");
+        MessageBox.Query(50, 15, "About", sb.ToString(), "Ok");
     }
 
 
@@ -124,7 +113,8 @@ public class App(IPlayer player) : Toplevel
             X = Pos.Center(),
             Y = Pos.Bottom(nameTextField) + 1,
             Visible = false,
-            ColorScheme = new(new Terminal.Gui.Attribute(Color.Green, Color.Black))
+            // TODO
+            //ColorScheme = new(new Terminal.Gui.Attribute(Color.Green, Color.Black))
         };
 
         var dialog = new Dialog()
@@ -140,8 +130,10 @@ public class App(IPlayer player) : Toplevel
         };
 
         // Download file from YouTube
-        downloadButton.Accept += async (s, e) =>
+        downloadButton.Accepting += async (s, e) =>
         {
+            // Download
+            e.Handled = true;
             // Preparation 
             textLabelSuccess.Visible = false;
             spinnerView.Visible = true;
@@ -149,19 +141,23 @@ public class App(IPlayer player) : Toplevel
             var url = urlTextField.Text;
             var songName = nameTextField.Text;
 
-            // Download
             var result = await DownloadFromYoutube(url, songName);
             if (result.IsFailure)
             {
                 MessageBox.ErrorQuery("Error", result.Error, "Ok");
             }
+            else
+            {
+                // Cleanup
+                // toDO
+                //Application.Refresh();
+                urlTextField.Text = string.Empty;
+                nameTextField.Text = string.Empty;
+                textLabelSuccess.Visible = true;
+                spinnerView.Visible = false;
+                spinnerView.AutoSpin = false;
+            }
 
-            // Cleanup
-            Application.Refresh();
-            spinnerView.Visible = false;
-            spinnerView.AutoSpin = false;
-            urlTextField.Text = "";
-            textLabelSuccess.Visible = true;
         };
 
         var exitButton = new Button()
@@ -171,7 +167,7 @@ public class App(IPlayer player) : Toplevel
             Y = Pos.Percent(90),
         };
 
-        exitButton.Accept += (s, e) => dialog.Running = false;
+        exitButton.Accepting += (s, e) => dialog.Running = false;
 
         dialog.Add(urlLabel);
         dialog.Add(urlTextField);
