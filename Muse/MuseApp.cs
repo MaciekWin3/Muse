@@ -76,7 +76,7 @@ public class MuseApp : Toplevel
         statusBar.Add(new Shortcut()
         {
             Title = "Mute",
-            Key = Key.M,
+            Key = Key.Backspace,
             Action = () =>
             {
                 if (mainWindow.volumeSlider.FocusedOption != 0)
