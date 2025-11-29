@@ -1,8 +1,10 @@
 using Muse.Player;
 using Muse.Utils;
+using Muse.Windows;
 using System.Diagnostics;
 using System.Text;
 using Terminal.Gui.App;
+using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 using YoutubeExplode;
@@ -17,6 +19,7 @@ public class MuseApp(IPlayer player) : Toplevel
     private readonly IPlayer player = player;
     private MenuBarv2 menuBar = null!;
     private StatusBar statusBar = null!;
+    private MainWindow mainWindow = null!;
 
     public MenuBarv2 InitMenuBar()
     {
@@ -24,17 +27,19 @@ public class MuseApp(IPlayer player) : Toplevel
         {
             Menus =
             [
-                new("_File", new MenuItemv2[]
+                new("File", new MenuItemv2[]
                 {
-                    new("_Quit", "", () => Application.RequestStop())
+                    new("Open", "Open music folder", () => { }),
+                    new("Quit", "Quit application", () => Application.RequestStop()),
                 }),
-                new("_Help", new MenuItemv2[]
+                new("Help", new MenuItemv2[]
                 {
-                    new("_About", "", () => ShowAsciiArt())
+                    new("About", "About Muse", () => ShowAsciiArt()),
+                    new("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
                 }),
-                new("_Download", new MenuItemv2[]
+                new("Download", new MenuItemv2[]
                 {
-                    new("_From YT", "", () => ShowDownloadDialog())
+                    new("From YT", "Download file from YT", () => ShowDownloadDialog())
                 })
             ]
         };
@@ -44,11 +49,34 @@ public class MuseApp(IPlayer player) : Toplevel
 
     public StatusBar InitStatusBar()
     {
-        statusBar = new StatusBar();
+        statusBar = new StatusBar
+        {
+            AlignmentModes = AlignmentModes.IgnoreFirstOrLast,
+            CanFocus = false,
+        };
+
         statusBar.Add(new Shortcut()
         {
             Title = "Quit",
             Key = Application.Keyboard.QuitKey,
+        });
+
+        statusBar.Add(new Shortcut()
+        {
+            Title = "Mute",
+            Key = Key.M,
+            Action = () =>
+            {
+                mainWindow.Accepting += (s, e) =>
+                {
+                };
+            }
+        });
+
+        statusBar.Add(new Shortcut()
+        {
+            //Title = $"OS: {Environment.OSVersion}, Driver: {Application.Driver!.GetVersionInfo()}"
+            Title = $"OS: {Environment.OSVersion}, Driver: {Application.Driver!.GetVersionInfo()}"
         });
 
         return statusBar;
