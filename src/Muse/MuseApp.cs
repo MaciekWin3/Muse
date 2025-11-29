@@ -12,14 +12,23 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Muse;
 
-public class MuseApp(IPlayer player) : Toplevel
+public class MuseApp : Toplevel
 {
     private readonly static string MUSIC_DIRECTORY = @"C:\Users\macie\Music\Miszmasz";
 
-    private readonly IPlayer player = player;
+    private readonly IPlayerService player; // TODO: check if needed
     private MenuBarv2 menuBar = null!;
     private StatusBar statusBar = null!;
     private MainWindow mainWindow = null!;
+
+    public MuseApp(IPlayerService player)
+    {
+        this.player = player;
+        mainWindow = new MainWindow(player);
+        menuBar = InitMenuBar();
+        statusBar = InitStatusBar();
+        Add(mainWindow, statusBar, menuBar);
+    }
 
     public MenuBarv2 InitMenuBar()
     {
@@ -61,22 +70,27 @@ public class MuseApp(IPlayer player) : Toplevel
             Key = Application.Keyboard.QuitKey,
         });
 
+        // TODO: Verify do we want to keep mute option
         statusBar.Add(new Shortcut()
         {
             Title = "Mute",
             Key = Key.M,
             Action = () =>
             {
-                mainWindow.Accepting += (s, e) =>
+                if (mainWindow.volumeSlider.FocusedOption != 0)
                 {
-                };
+                    mainWindow.volumeSlider.SetOption(0);
+                }
+                else
+                {
+                    mainWindow.volumeSlider.SetOption(5);
+                }
             }
         });
 
         statusBar.Add(new Shortcut()
         {
-            //Title = $"OS: {Environment.OSVersion}, Driver: {Application.Driver!.GetVersionInfo()}"
-            Title = $"OS: {Environment.OSVersion}, Driver: {Application.Driver!.GetVersionInfo()}"
+            Title = $"OS: {Environment.OSVersion}"
         });
 
         return statusBar;

@@ -3,7 +3,7 @@ using NAudio.Wave;
 
 namespace Muse.Player;
 
-public interface IPlayer
+public interface IPlayerService
 {
     public PlaybackState State { get; }
     Result Load(string fileName);

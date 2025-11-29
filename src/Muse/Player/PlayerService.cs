@@ -3,13 +3,13 @@ using NAudio.Wave;
 
 namespace Muse.Player;
 
-public class Player : IPlayer, IDisposable
+public class PlayerService : IPlayerService, IDisposable
 {
     private readonly IWavePlayer waveOutDevice;
     private AudioFileReader audioFileReader = null!;
     public PlaybackState State => waveOutDevice.PlaybackState;
 
-    public Player()
+    public PlayerService()
     {
         waveOutDevice = new WaveOutEvent();
     }

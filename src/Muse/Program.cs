@@ -2,14 +2,13 @@
 using Microsoft.Extensions.Hosting;
 using Muse;
 using Muse.Player;
-using Muse.Windows;
 using Terminal.Gui.App;
 
 using var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         services.AddSingleton<MuseApp>();
-        services.AddSingleton<IPlayer, Player>();
+        services.AddSingleton<IPlayerService, PlayerService>();
     })
     .Build();
 
@@ -30,10 +29,12 @@ void InitApp()
     var museApp = services.GetRequiredService<MuseApp>();
     Application.Init();
 
+    /*
     var menuBar = museApp.InitMenuBar();
     var statusBar = museApp.InitStatusBar();
     museApp.Add(menuBar, statusBar);
     museApp.Add(new MainWindow(services.GetRequiredService<IPlayer>()));
+    */
 
     Application.Run(museApp);
     Application.Shutdown();

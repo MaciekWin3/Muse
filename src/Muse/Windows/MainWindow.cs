@@ -16,7 +16,7 @@ public sealed class MainWindow : Window
     // TODO: Check if next/preious back/forward is avilable
     // TODO: Remove hardcoded path
     private readonly static string MUSIC_DIRECTORY = @"C:\\Users\\macie\\Music\\Miszmasz\\";
-    private readonly IPlayer player;
+    private readonly IPlayerService player;
 
     private FrameView musicListFrame = null!;
     private ListView musicList = null!;
@@ -30,7 +30,7 @@ public sealed class MainWindow : Window
     private Button previousSongButton = null!;
 
     private ProgressBar progressBar = null!;
-    private Slider volumeSlider = null!;
+    public Slider volumeSlider = null!;
 
     // explicit heights used across the UI so we can reuse them without calling internal Dim APIs
     private const int ButtonsFrameHeight = 3;
@@ -44,7 +44,7 @@ public sealed class MainWindow : Window
     private List<FileInfo> Playlist { get; set; } = [.. MusicListHelper.GetMusicList(MUSIC_DIRECTORY)];
 
 
-    public MainWindow(IPlayer player)
+    public MainWindow(IPlayerService player)
     {
         this.player = player;
         InitControls();
