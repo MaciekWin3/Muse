@@ -14,7 +14,9 @@ namespace Muse;
 
 public class MuseApp : Toplevel
 {
-    private readonly static string MUSIC_DIRECTORY = @"C:\Users\macie\Music\Miszmasz";
+    private readonly string MUSIC_DIRECTORY =
+        Environment.GetEnvironmentVariable("MUSE_DIRECTORY")
+            ?? throw new Exception("MUSE_DIRECTORY environment variable is not set.");
 
     private readonly IPlayerService player; // TODO: check if needed
     private MenuBarv2 menuBar = null!;

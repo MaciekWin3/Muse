@@ -17,6 +17,25 @@ var services = scope.ServiceProvider;
 
 try
 {
+    string museDirectory = Environment.GetEnvironmentVariable("MUSE_DIRECTORY") ?? string.Empty;
+    if (string.IsNullOrEmpty(museDirectory))
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine("MUSE_DIRECTORY environment variable is not set.");
+        Console.ResetColor();
+        if (OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("Please set it using the following command in PowerShell:");
+            Console.WriteLine("[Environment]::SetEnvironmentVariable(\"MUSE_DIRECTORY\", \"C:\\Path\\To\\Your\\Music\", \"User\")");
+        }
+        else
+        {
+            Console.WriteLine("Please set it using the following command in your shell:");
+            Console.WriteLine("export MUSE_DIRECTORY=\"/path/to/your/music\"");
+        }
+        Environment.Exit(1);
+    }
+
     InitApp();
 }
 catch (Exception ex)
