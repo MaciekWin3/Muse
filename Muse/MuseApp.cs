@@ -40,7 +40,7 @@ public class MuseApp : Toplevel
             [
                 new("File", new MenuItemv2[]
                 {
-                    new("Open", "Open music folder", () => { }),
+                    new("Open", "Open music folder", () => OpenFolder()),
                     new("Quit", "Quit application", () => Application.RequestStop()),
                 }),
                 new("Help", new MenuItemv2[]
@@ -57,6 +57,8 @@ public class MuseApp : Toplevel
 
         return menuBar;
     }
+
+
 
     public StatusBar InitStatusBar()
     {
@@ -245,5 +247,19 @@ public class MuseApp : Toplevel
             return Result.Fail(e.Message);
         }
         return Result.Ok();
+    }
+
+    private void OpenFolder()
+    {
+        var fileExplorerDialog = new OpenDialog
+        {
+            Title = "Open",
+            Path = MUSIC_DIRECTORY,
+            AllowsMultipleSelection = false
+        };
+
+        Application.Run(fileExplorerDialog);
+
+        // TODO: Change songs directory (not urgent)
     }
 }

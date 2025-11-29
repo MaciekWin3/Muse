@@ -15,7 +15,11 @@ public sealed class MainWindow : Window
 {
     // TODO: Check if next/preious back/forward is avilable
     // TODO: Remove hardcoded path
-    private readonly static string MUSIC_DIRECTORY = @"C:\\Users\\macie\\Music\\Miszmasz\\";
+
+    private readonly string MUSIC_DIRECTORY =
+        Environment.GetEnvironmentVariable("MUSE_DIRECTORY")
+            ?? throw new Exception("MUSE_DIRECTORY environment variable is not set.");
+
     private readonly IPlayerService player;
 
     private FrameView musicListFrame = null!;
@@ -39,14 +43,14 @@ public sealed class MainWindow : Window
     private const int VolumeSliderHeight = 4;
 
     private readonly FileSystemWatcher watcher = new();
-    private static int numberOfSongs = MusicListHelper.GetMusicList(MUSIC_DIRECTORY).ToList().Count;
-
-    private List<FileInfo> Playlist { get; set; } = [.. MusicListHelper.GetMusicList(MUSIC_DIRECTORY)];
-
+    private int NumberOfSongs { get; set; }
+    public List<FileInfo> Playlist { get; set; }
 
     public MainWindow(IPlayerService player)
     {
         this.player = player;
+        Playlist = [.. MusicListHelper.GetMusicList(MUSIC_DIRECTORY)];
+        NumberOfSongs = Playlist.Count;
         InitControls();
         InitStyles();
     }
@@ -90,7 +94,7 @@ public sealed class MainWindow : Window
             watcher.Filter = "*.*";
             watcher.Changed += new FileSystemEventHandler(OnChanged);
             watcher.EnableRaisingEvents = true;
-            if (numberOfSongs != Playlist.Count)
+            if (NumberOfSongs != Playlist.Count)
             {
                 // TODO: Refresh when folder content changes
                 // TODO: Same volume after changing song
@@ -184,16 +188,19 @@ public sealed class MainWindow : Window
         {
             if (player.State == PlaybackState.Stopped || player.State == PlaybackState.Paused)
             {
-                if (playPauseButton is not null)
-                {
-                    playPauseButton.Text = "||";
-                }
+                playPauseButton?.Text = "||";
             }
+
             var song = e.Value.ToString();
-            player.Load(MUSIC_DIRECTORY + song);
+
+            if (song is null)
+            {
+                return;
+            }
+            player.Load(Path.Combine(MUSIC_DIRECTORY, song));
             player.Play();
 
-            Application.AddTimeout(TimeSpan.FromSeconds(0.01), () =>
+            Application.AddTimeout(TimeSpan.FromMilliseconds(100), () =>
             {
                 TrackSong();
                 return true;
@@ -406,32 +413,48 @@ public sealed class MainWindow : Window
 
     private void TrackSong()
     {
-        var songInfo = player.GetSongInfo();
-        if (songInfo.Success)
+        var songInfoResult = player.GetSongInfo();
+        if (!songInfoResult.Success)
         {
-            progressBar.Fraction = (float)songInfo.Value.CurrentTime / songInfo.Value.TotalTimeInSeconds;
-            var currentMinutes = songInfo.Value.CurrentTime / 60;
-            var currentSeconds = songInfo.Value.CurrentTime % 60;
-            var totalMinutes = songInfo.Value.TotalTimeInSeconds / 60;
-            var totalSeconds = songInfo.Value.TotalTimeInSeconds % 60;
-            var formatedCurrentSeconds = currentSeconds < 10 ? $"0{currentSeconds}" : currentSeconds.ToString();
-            var formatedTotalSeconds = totalSeconds < 10 ? $"0{totalSeconds}" : totalSeconds.ToString();
-            var timer = $" {currentMinutes}:{formatedCurrentSeconds} / {totalMinutes}:{formatedTotalSeconds}";
+            progressBar.Text = songInfoResult.Error;
+            return;
+        }
 
-            progressBar.Title = "Playing: " + songInfo.Value.Name + $" {timer}";
-            // TODO: Check if refresh is needed and how to make progress bar refresh smoother
-            //Application.Refresh();
+        var info = songInfoResult.Value;
+
+        progressBar.Fraction = (float)info.CurrentTime / info.TotalTimeInSeconds;
+
+        progressBar.Title = $"Playing: {info.Name}{FormatTime(info.CurrentTime, info.TotalTimeInSeconds)}";
+
+        if (info.CurrentTime >= info.TotalTimeInSeconds)
+        {
+            MoveToNextSong();
+        }
+    }
+
+
+    private string FormatTime(int current, int total)
+    {
+        int cm = current / 60;
+        int cs = current % 60;
+        int tm = total / 60;
+        int ts = total % 60;
+
+        return $" {cm}:{cs:00} / {tm}:{ts:00}";
+    }
+
+    private void MoveToNextSong()
+    {
+        if (musicList.SelectedItem + 1 < Playlist.Count)
+        {
+            musicList.SelectedItem++;
+            player.Load(Playlist[musicList.SelectedItem].FullName);
         }
         else
         {
-            progressBar.Text = songInfo.Error;
+            musicList.SelectedItem = 0;
+            player.Load(Playlist[musicList.SelectedItem].FullName);
         }
-
-        if (songInfo.Value.CurrentTime >= songInfo.Value.TotalTimeInSeconds)
-        {
-            player.Load(Playlist[musicList.SelectedItem + 1].FullName);
-            musicList.SelectedItem++;
-            player.Play();
-        }
+        player.Play();
     }
 }
