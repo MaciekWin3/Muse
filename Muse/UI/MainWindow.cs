@@ -9,7 +9,7 @@ using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
 
-namespace Muse.Windows;
+namespace Muse.UI;
 
 public sealed class MainWindow : Window
 {

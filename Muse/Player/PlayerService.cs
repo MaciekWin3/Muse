@@ -5,8 +5,10 @@ namespace Muse.Player;
 
 public class PlayerService : IPlayerService, IDisposable
 {
-    private readonly IWavePlayer waveOutDevice;
+    // private readonly IWavePlayer waveOutDevice;
+    private readonly WaveOutEvent waveOutDevice;
     private AudioFileReader audioFileReader = null!;
+
     public PlaybackState State => waveOutDevice.PlaybackState;
 
     public PlayerService()

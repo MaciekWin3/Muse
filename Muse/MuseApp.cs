@@ -1,6 +1,6 @@
 using Muse.Player;
+using Muse.UI;
 using Muse.Utils;
-using Muse.Windows;
 using System.Diagnostics;
 using System.Text;
 using Terminal.Gui.App;
