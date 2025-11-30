@@ -14,10 +14,6 @@ namespace Muse;
 
 public class MuseApp : Toplevel
 {
-    private readonly string MUSIC_DIRECTORY =
-        Environment.GetEnvironmentVariable("MUSE_DIRECTORY")
-            ?? throw new Exception("MUSE_DIRECTORY environment variable is not set.");
-
     private readonly IPlayerService player; // TODO: check if needed
     private MenuBarv2 menuBar = null!;
     private StatusBar statusBar = null!;
@@ -232,15 +228,15 @@ public class MuseApp : Toplevel
         try
         {
             var videoInfo = await youtube.Videos.GetAsync(link);
-            if (!Directory.Exists(MUSIC_DIRECTORY))
+            if (!Directory.Exists(Globals.MuseDirectory))
             {
-                Directory.CreateDirectory(MUSIC_DIRECTORY);
+                Directory.CreateDirectory(Globals.MuseDirectory);
             }
             var streamManifest = await youtube.Videos.Streams.GetManifestAsync(link);
             var streamInfo = streamManifest.GetAudioOnlyStreams().Where(s => s.Container == Container.Mp4).GetWithHighestBitrate();
             var stream = await youtube.Videos.Streams.GetAsync(streamInfo);
             Debug.WriteLine(videoInfo.Author);
-            await youtube.Videos.Streams.DownloadAsync(streamInfo, @$"{MUSIC_DIRECTORY}\{name ?? videoInfo.Title}.{streamInfo.Container}");
+            await youtube.Videos.Streams.DownloadAsync(streamInfo, @$"{Globals.MuseDirectory}\{name ?? videoInfo.Title}.{streamInfo.Container}");
         }
         catch (Exception e)
         {
@@ -254,7 +250,7 @@ public class MuseApp : Toplevel
         var fileExplorerDialog = new OpenDialog
         {
             Title = "Open",
-            Path = MUSIC_DIRECTORY,
+            Path = Globals.MuseDirectory,
             AllowsMultipleSelection = false
         };
 

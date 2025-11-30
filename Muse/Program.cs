@@ -35,6 +35,10 @@ try
         }
         Environment.Exit(1);
     }
+    else
+    {
+        Globals.MuseDirectory = museDirectory;
+    }
 
     InitApp();
 }

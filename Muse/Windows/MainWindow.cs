@@ -16,10 +16,6 @@ public sealed class MainWindow : Window
     // TODO: Check if next/preious back/forward is avilable
     // TODO: Remove hardcoded path
 
-    private readonly string MUSIC_DIRECTORY =
-        Environment.GetEnvironmentVariable("MUSE_DIRECTORY")
-            ?? throw new Exception("MUSE_DIRECTORY environment variable is not set.");
-
     private readonly IPlayerService player;
 
     private FrameView musicListFrame = null!;
@@ -49,7 +45,7 @@ public sealed class MainWindow : Window
     public MainWindow(IPlayerService player)
     {
         this.player = player;
-        Playlist = [.. MusicListHelper.GetMusicList(MUSIC_DIRECTORY)];
+        Playlist = [.. MusicListHelper.GetMusicList(Globals.MuseDirectory)];
         NumberOfSongs = Playlist.Count;
         InitControls();
         InitStyles();
@@ -57,7 +53,7 @@ public sealed class MainWindow : Window
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        Playlist = [.. MusicListHelper.GetMusicList(MUSIC_DIRECTORY)];
+        Playlist = [.. MusicListHelper.GetMusicList(Globals.MuseDirectory)];
     }
 
     public void InitControls()
@@ -89,7 +85,7 @@ public sealed class MainWindow : Window
 
         Application.AddTimeout(TimeSpan.FromSeconds(1), () =>
         {
-            watcher.Path = MUSIC_DIRECTORY;
+            watcher.Path = Globals.MuseDirectory;
             watcher.NotifyFilter = NotifyFilters.LastWrite;
             watcher.Filter = "*.*";
             watcher.Changed += new FileSystemEventHandler(OnChanged);
@@ -197,7 +193,7 @@ public sealed class MainWindow : Window
             {
                 return;
             }
-            player.Load(Path.Combine(MUSIC_DIRECTORY, song));
+            player.Load(Path.Combine(Globals.MuseDirectory, song));
             player.Play();
 
             Application.AddTimeout(TimeSpan.FromMilliseconds(100), () =>
