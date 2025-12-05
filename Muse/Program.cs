@@ -9,7 +9,9 @@ using Terminal.Gui.App;
 using var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
-        services.AddSingleton<MuseApp>();
+
+        services.AddTerminalGuiViews();
+
         services.AddSingleton<IYoutubeDownloadService, YoutubeDownloadService>();
         services.AddSingleton<IPlayerService, PlayerService>();
     })

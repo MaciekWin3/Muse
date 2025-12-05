@@ -8,10 +8,9 @@ using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
-
 namespace Muse.UI;
 
-public sealed class MainWindow : Window
+public sealed class MainWindowView : Window
 {
     // TODO: Check if next/preious back/forward is avilable
     // TODO: Remove hardcoded path
@@ -42,7 +41,7 @@ public sealed class MainWindow : Window
     private int NumberOfSongs { get; set; }
     public List<FileInfo> Playlist { get; set; }
 
-    public MainWindow(IPlayerService player)
+    public MainWindowView(IPlayerService player)
     {
         this.player = player;
         Playlist = [.. MusicListHelper.GetMusicList(Globals.MuseDirectory)];

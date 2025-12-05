@@ -29,4 +29,7 @@
     <PackageReference Include="YoutubeExplode" Version="6.5.6" />
     <PackageReference Include="YoutubeExplode.Converter" Version="6.5.6" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="UI\NewFolder\" />
+  </ItemGroup>
 </Project>
