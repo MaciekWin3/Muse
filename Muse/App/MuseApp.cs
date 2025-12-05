@@ -17,7 +17,7 @@ public class MuseApp : Toplevel
 
     private MenuBarv2 menuBar = null!;
     private StatusBar statusBar = null!;
-    private MainWindow mainWindow = null!;
+    private readonly MainWindow mainWindow = null!;
 
     public MuseApp(IPlayerService player, IYoutubeDownloadService youtubeDownloadService)
     {
@@ -109,7 +109,6 @@ public class MuseApp : Toplevel
         MessageBox.Query(50, 15, "About", sb.ToString(), "Ok");
     }
 
-
     private void ShowDownloadDialog()
     {
         var urlLabel = new Label()
@@ -187,9 +186,6 @@ public class MuseApp : Toplevel
             }
             else
             {
-                // Cleanup
-                // toDO
-                //Application.Refresh();
                 urlTextField.Text = string.Empty;
                 nameTextField.Text = string.Empty;
                 textLabelSuccess.Visible = true;
@@ -216,6 +212,7 @@ public class MuseApp : Toplevel
         dialog.Add(textLabelSuccess);
         dialog.AddButton(downloadButton);
         dialog.AddButton(exitButton);
+
         Application.Run(dialog);
     }
 
@@ -225,16 +222,17 @@ public class MuseApp : Toplevel
         {
             Title = "Open",
             Path = Globals.MuseDirectory,
-            AllowsMultipleSelection = false
+            AllowsMultipleSelection = false,
+            OpenMode = OpenMode.Directory
         };
 
         Application.Run(fileExplorerDialog);
-        fileExplorerDialog.Accepting += (s, e) =>
+
+        var selectedPath = fileExplorerDialog.FilePaths?.FirstOrDefault()?.ToString();
+        if (!string.IsNullOrWhiteSpace(selectedPath) && Directory.Exists(selectedPath))
         {
-            e.Handled = true;
-
-        };
-
-        // TODO: Change songs directory (not urgent)
+            Globals.MuseDirectory = selectedPath;
+            Application.Invoke(() => mainWindow.ReloadPlaylist(selectedPath));
+        }
     }
 }

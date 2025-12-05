@@ -129,7 +129,6 @@ public sealed class MainWindow : Window
                 }
             }
         };
-
     }
 
     public void InitStyles()
@@ -451,5 +450,24 @@ public sealed class MainWindow : Window
             player.Load(Playlist[musicList.SelectedItem].FullName);
         }
         player.Play();
+    }
+
+    // Add this public helper to the MainWindow class
+    public void ReloadPlaylist(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+            return;
+
+        Playlist = [.. MusicListHelper.GetMusicList(path)];
+        NumberOfSongs = Playlist.Count;
+
+        if (musicList is not null)
+        {
+            // Update ListView source on the UI/main loop
+            Application.Invoke(() =>
+            {
+                musicList.SetSource(new ObservableCollection<string>(Playlist.Select(f => f.Name)));
+            });
+        }
     }
 }
