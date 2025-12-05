@@ -30,6 +30,11 @@ public class YoutubeDownloadService : IYoutubeDownloadService
                 .Where(s => s.Container == Container.Mp4)
                 .GetWithHighestBitrate();
 
+            if (audioStream is null)
+            {
+                return Result.Fail("No audio-only stream found for this video.");
+            }
+
             string fileName = name ?? video.Title;
             fileName = SanitizeFileName(fileName);
             string extension = audioStream.Container.Name;

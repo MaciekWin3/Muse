@@ -41,14 +41,6 @@ void InitApp()
 {
     var museApp = services.GetRequiredService<MuseApp>();
     Application.Init();
-
-    /*
-    var menuBar = museApp.InitMenuBar();
-    var statusBar = museApp.InitStatusBar();
-    museApp.Add(menuBar, statusBar);
-    museApp.Add(new MainWindow(services.GetRequiredService<IPlayer>()));
-    */
-
     Application.Run(museApp);
     Application.Shutdown();
 }

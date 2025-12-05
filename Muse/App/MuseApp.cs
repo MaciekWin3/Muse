@@ -43,6 +43,7 @@ public class MuseApp : Toplevel
                 new("Help", new MenuItemv2[]
                 {
                     new("About", "About Muse", () => ShowAsciiArt()),
+                    new("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
                     new("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
                 }),
                 new("Download", new MenuItemv2[]
@@ -107,6 +108,21 @@ public class MuseApp : Toplevel
         sb.AppendLine(@" |_|  |_|\____/|_____/|______|");
         sb.AppendLine();
         MessageBox.Query(50, 15, "About", sb.ToString(), "Ok");
+    }
+
+    private static void ShowShortcuts()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Global shortcuts:");
+        sb.AppendLine("  - Quit: Esc");
+        sb.AppendLine("  - Mute: Backspace");
+        sb.AppendLine();
+        sb.AppendLine("Player shortcuts:");
+        sb.AppendLine("p  - Play/Pause");
+        sb.AppendLine("n  - Next track");
+        sb.AppendLine("b  - Previous track");
+
+        MessageBox.Query(50, 15, "Shortcuts", sb.ToString(), "Ok");
     }
 
     private void ShowDownloadDialog()

@@ -456,7 +456,9 @@ public sealed class MainWindow : Window
     public void ReloadPlaylist(string path)
     {
         if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+        {
             return;
+        }
 
         Playlist = [.. MusicListHelper.GetMusicList(path)];
         NumberOfSongs = Playlist.Count;
