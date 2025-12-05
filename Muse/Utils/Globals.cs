@@ -1,4 +1,4 @@
-﻿namespace Muse;
+﻿namespace Muse.Utils;
 
 public static class Globals
 {

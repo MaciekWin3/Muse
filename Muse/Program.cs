@@ -1,7 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Muse;
+using Muse.App;
 using Muse.Player;
+using Muse.Utils;
 using Muse.YouTube;
 using Terminal.Gui.App;
 

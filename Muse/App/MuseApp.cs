@@ -8,7 +8,7 @@ using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
-namespace Muse;
+namespace Muse.App;
 
 public class MuseApp : Toplevel
 {
@@ -232,6 +232,7 @@ public class MuseApp : Toplevel
         fileExplorerDialog.Accepting += (s, e) =>
         {
             e.Handled = true;
+
         };
 
         // TODO: Change songs directory (not urgent)
