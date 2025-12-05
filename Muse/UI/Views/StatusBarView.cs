@@ -7,8 +7,8 @@ namespace Muse.UI.Views;
 
 public class StatusBarView : StatusBar
 {
-    private readonly MainWindow mainWindow;
-    public StatusBarView(MainWindow mainWindow)
+    private readonly MainWindowView mainWindow;
+    public StatusBarView(MainWindowView mainWindow)
     {
         this.mainWindow = mainWindow;
 

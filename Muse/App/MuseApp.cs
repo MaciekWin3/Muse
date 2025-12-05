@@ -10,12 +10,12 @@ public class MuseApp : Toplevel
 {
     private readonly IPlayerService player;
     private readonly IYoutubeDownloadService youtubeDownloadService;
-    private readonly MainWindow mainWindow;
+    private readonly MainWindowView mainWindow;
     private readonly MenuBarView menuBarView;
     private readonly StatusBarView statusBarView;
 
     public MuseApp(IPlayerService player, IYoutubeDownloadService youtubeDownloadService,
-        MainWindow mainWindow, MenuBarView menuBarView, StatusBarView statusBarView)
+        MainWindowView mainWindow, MenuBarView menuBarView, StatusBarView statusBarView)
     {
         this.player = player;
         this.youtubeDownloadService = youtubeDownloadService;

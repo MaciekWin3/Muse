@@ -109,6 +109,7 @@ public sealed class MainWindowView : Window
             {
                 return;
             }
+
             if (e.View is ProgressBar)
             {
                 if (e.Flags == MouseFlags.Button1Clicked)

@@ -60,7 +60,7 @@ public class MenuBarView : MenuBarv2
         }
     }
 
-    private MainWindow? FindMainWindow()
+    private MainWindowView? FindMainWindow()
     {
         if (Application.Top is null)
         {
@@ -69,11 +69,11 @@ public class MenuBarView : MenuBarv2
         return FindIn([.. Application.Top.SubViews]);
     }
 
-    private MainWindow? FindIn(IList<View> views)
+    private MainWindowView? FindIn(IList<View> views)
     {
         foreach (var v in views)
         {
-            if (v is MainWindow mw)
+            if (v is MainWindowView mw)
             {
                 return mw;
             }
