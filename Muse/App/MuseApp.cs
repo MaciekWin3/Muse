@@ -1,27 +1,28 @@
 using Muse.Player;
 using Muse.UI;
 using Muse.Utils;
-using System.Diagnostics;
+using Muse.YouTube;
 using System.Text;
 using Terminal.Gui.App;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
-using YoutubeExplode;
-using YoutubeExplode.Videos.Streams;
 
 namespace Muse;
 
 public class MuseApp : Toplevel
 {
     private readonly IPlayerService player; // TODO: check if needed
+    private readonly IYoutubeDownloadService youtubeDownloadService;
+
     private MenuBarv2 menuBar = null!;
     private StatusBar statusBar = null!;
     private MainWindow mainWindow = null!;
 
-    public MuseApp(IPlayerService player)
+    public MuseApp(IPlayerService player, IYoutubeDownloadService youtubeDownloadService)
     {
         this.player = player;
+        this.youtubeDownloadService = youtubeDownloadService;
         mainWindow = new MainWindow(player);
         menuBar = InitMenuBar();
         statusBar = InitStatusBar();
@@ -54,8 +55,6 @@ public class MuseApp : Toplevel
         return menuBar;
     }
 
-
-
     public StatusBar InitStatusBar()
     {
         statusBar = new StatusBar
@@ -70,7 +69,6 @@ public class MuseApp : Toplevel
             Key = Application.Keyboard.QuitKey,
         });
 
-        // TODO: Verify do we want to keep mute option
         statusBar.Add(new Shortcut()
         {
             Title = "Mute",
@@ -96,7 +94,7 @@ public class MuseApp : Toplevel
         return statusBar;
     }
 
-    private void ShowAsciiArt()
+    private static void ShowAsciiArt()
     {
         var sb = new StringBuilder();
         sb.AppendLine("Muse - Terminal MP3 player");
@@ -155,8 +153,6 @@ public class MuseApp : Toplevel
             X = Pos.Center(),
             Y = Pos.Bottom(nameTextField) + 1,
             Visible = false,
-            // TODO
-            //ColorScheme = new(new Terminal.Gui.Attribute(Color.Green, Color.Black))
         };
 
         var dialog = new Dialog()
@@ -183,7 +179,8 @@ public class MuseApp : Toplevel
             var url = urlTextField.Text;
             var songName = nameTextField.Text;
 
-            var result = await DownloadFromYoutube(url, songName);
+            var result = await youtubeDownloadService.DownloadAsync(url, songName);
+
             if (result.IsFailure)
             {
                 MessageBox.ErrorQuery("Error", result.Error, "Ok");
@@ -222,29 +219,6 @@ public class MuseApp : Toplevel
         Application.Run(dialog);
     }
 
-    public async Task<Result> DownloadFromYoutube(string link, string name = null!)
-    {
-        var youtube = new YoutubeClient();
-        try
-        {
-            var videoInfo = await youtube.Videos.GetAsync(link);
-            if (!Directory.Exists(Globals.MuseDirectory))
-            {
-                Directory.CreateDirectory(Globals.MuseDirectory);
-            }
-            var streamManifest = await youtube.Videos.Streams.GetManifestAsync(link);
-            var streamInfo = streamManifest.GetAudioOnlyStreams().Where(s => s.Container == Container.Mp4).GetWithHighestBitrate();
-            var stream = await youtube.Videos.Streams.GetAsync(streamInfo);
-            Debug.WriteLine(videoInfo.Author);
-            await youtube.Videos.Streams.DownloadAsync(streamInfo, @$"{Globals.MuseDirectory}\{name ?? videoInfo.Title}.{streamInfo.Container}");
-        }
-        catch (Exception e)
-        {
-            return Result.Fail(e.Message);
-        }
-        return Result.Ok();
-    }
-
     private void OpenFolder()
     {
         var fileExplorerDialog = new OpenDialog
@@ -255,6 +229,10 @@ public class MuseApp : Toplevel
         };
 
         Application.Run(fileExplorerDialog);
+        fileExplorerDialog.Accepting += (s, e) =>
+        {
+            e.Handled = true;
+        };
 
         // TODO: Change songs directory (not urgent)
     }

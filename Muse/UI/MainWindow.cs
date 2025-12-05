@@ -428,7 +428,6 @@ public sealed class MainWindow : Window
         }
     }
 
-
     private string FormatTime(int current, int total)
     {
         int cm = current / 60;
