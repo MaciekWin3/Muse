@@ -65,6 +65,16 @@ public class PlayerService : IPlayerService, IDisposable
         return Result.Fail("Unable to set volume");
     }
 
+    public Result<int> GetVolume()
+    {
+        if (audioFileReader is not null)
+        {
+            int volume = (int)(audioFileReader.Volume * 10);
+            return Result.Ok(volume);
+        }
+        return Result.Fail<int>("Unable to get volume");
+    }
+
     public Result<SongInfo> GetSongInfo()
     {
         if (audioFileReader is not null)

@@ -11,7 +11,7 @@ public sealed class VolumeView : Slider
 
     private readonly IUiEventBus uiBus;
 
-    public VolumeView(IUiEventBus uiBus, Pos y)
+    public VolumeView(IUiEventBus uiBus, Pos x, Pos y)
     {
         this.uiBus = uiBus;
 
@@ -24,6 +24,7 @@ public sealed class VolumeView : Slider
             })
             .ToList();
 
+        X = x;
         Y = y;
         Title = "Volume";
         Height = VolumeSliderHeight;
@@ -40,5 +41,11 @@ public sealed class VolumeView : Slider
          };
 
         SetOption(10);
+
+        RegisterBusHandlers();
+    }
+
+    private void RegisterBusHandlers()
+    {
     }
 }
