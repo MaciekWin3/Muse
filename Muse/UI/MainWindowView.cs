@@ -182,7 +182,8 @@ public sealed class MainWindowView : Window
 
         Add(buttonsFrame);
 
-        Add(InitProgressBar());
+        progressBar = new ProgressBarView(uiEventBus, 0, Pos.Top(buttonsFrame) - ProgressBarHeight);
+        Add(progressBar);
 
         //Add(InitVolumeSlider());
         volumeSlider = new VolumeView(uiEventBus, Pos.Top(progressBar) - VolumeSliderHeight);
@@ -314,51 +315,6 @@ public sealed class MainWindowView : Window
         };
 
         return musicList;
-    }
-
-    private Slider InitVolumeSlider()
-    {
-        var options = new List<object> { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 95, 100 };
-        volumeSlider = new Slider(options)
-        {
-            Title = "Volume",
-            Y = Pos.Top(progressBar) - VolumeSliderHeight,
-            Height = VolumeSliderHeight,
-            Width = Dim.Fill(),
-            Type = SliderType.Single,
-            UseMinimumSize = false,
-            BorderStyle = LineStyle.Rounded,
-            ShowEndSpacing = false,
-        };
-
-        volumeSlider.OptionsChanged += (sender, e) =>
-        {
-            uiEventBus.Publish(new VolumeChanged(e.Options.FirstOrDefault().Key));
-            //var value = e.Options.FirstOrDefault().Key;
-            //player.SetVolume(value);
-        };
-
-        volumeSlider.SetOption(10);
-
-        return volumeSlider;
-    }
-
-    private ProgressBar InitProgressBar()
-    {
-        progressBar = new ProgressBar()
-        {
-
-            Title = "Progress",
-            X = 0,
-            Y = Pos.Top(buttonsFrame) - ProgressBarHeight,
-            Height = ProgressBarHeight,
-            Width = Dim.Fill(),
-            Fraction = 0,
-            BorderStyle = LineStyle.Rounded,
-            ProgressBarStyle = ProgressBarStyle.Continuous,
-        };
-
-        return progressBar;
     }
 
     private FrameView InitButtonsFrameView()
