@@ -1,4 +1,5 @@
-﻿using Terminal.Gui.App;
+﻿using Muse.UI.Bus;
+using Terminal.Gui.App;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -7,10 +8,10 @@ namespace Muse.UI.Views;
 
 public class StatusBarView : StatusBar
 {
-    private readonly MainWindowView mainWindow;
-    public StatusBarView(MainWindowView mainWindow)
+    private readonly IUiEventBus uiEventBus;
+    public StatusBarView(IUiEventBus uiEventBus)
     {
-        this.mainWindow = mainWindow;
+        this.uiEventBus = uiEventBus;
 
         AlignmentModes = AlignmentModes.IgnoreFirstOrLast;
         CanFocus = false;
@@ -27,14 +28,7 @@ public class StatusBarView : StatusBar
             Key = Key.Backspace,
             Action = () =>
             {
-                if (mainWindow.volumeSlider.FocusedOption != 0)
-                {
-                    mainWindow.volumeSlider.SetOption(0);
-                }
-                else
-                {
-                    mainWindow.volumeSlider.SetOption(5);
-                }
+                uiEventBus.Publish(new VolumeChanged(0));
             }
         });
 

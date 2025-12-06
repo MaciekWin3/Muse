@@ -105,8 +105,8 @@ public class MenuBarView : MenuBarv2
     {
         var sb = new StringBuilder();
         sb.AppendLine("Global shortcuts:");
-        sb.AppendLine("  - Quit: Esc");
-        sb.AppendLine("  - Mute: Backspace");
+        sb.AppendLine("Quit: Esc");
+        sb.AppendLine("Mute: Backspace");
         sb.AppendLine();
         sb.AppendLine("Player shortcuts:");
         sb.AppendLine("p  - Play/Pause");

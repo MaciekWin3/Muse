@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Muse.App;
 using Muse.Player;
+using Muse.UI.Bus;
 using Muse.Utils;
 using Muse.YouTube;
 using Terminal.Gui.App;
@@ -12,6 +13,7 @@ using var host = Host.CreateDefaultBuilder(args)
 
         services.AddTerminalGuiViews();
 
+        services.AddSingleton<IUiEventBus, UiEventBus>();
         services.AddSingleton<IYoutubeDownloadService, YoutubeDownloadService>();
         services.AddSingleton<IPlayerService, PlayerService>();
     })
