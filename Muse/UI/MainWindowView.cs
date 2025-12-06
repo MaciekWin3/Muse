@@ -1,4 +1,6 @@
 ﻿using Muse.Player;
+using Muse.UI.Bus;
+using Muse.UI.Views;
 using Muse.Utils;
 using NAudio.Wave;
 using System.Collections.ObjectModel;
@@ -41,13 +43,119 @@ public sealed class MainWindowView : Window
     private int NumberOfSongs { get; set; }
     public List<FileInfo> Playlist { get; set; }
 
-    public MainWindowView(IPlayerService player)
+    private readonly IUiEventBus uiEventBus;
+
+
+    public MainWindowView(IPlayerService player, IUiEventBus uiEventBus)
     {
         this.player = player;
+        this.uiEventBus = uiEventBus;
+
         Playlist = [.. MusicListHelper.GetMusicList(Globals.MuseDirectory)];
         NumberOfSongs = Playlist.Count;
-        InitControls();
-        InitStyles();
+        RegisterBusHandlers();
+        RegisterControls();
+        RegisterStyles();
+    }
+
+    private void RegisterBusHandlers()
+    {
+        // SongSelected => load + play
+        uiEventBus.Subscribe<SongSelected>(msg =>
+        {
+            // load & play
+            player.Load(msg.FullPath);
+            var result = player.Play();
+            if (result.Success)
+            {
+                // start tracking loop - reuse existing TrackSong method
+                Application.AddTimeout(TimeSpan.FromMilliseconds(100), () =>
+                {
+                    TrackSong();
+                    return true;
+                });
+            }
+            else
+            {
+                // show error on UI thread
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", "Cannot play file", "OK"));
+            }
+        });
+
+        // Toggle play/pause requested: decide based on player state
+        uiEventBus.Subscribe<TogglePlayRequested>(_ =>
+        {
+            if (player.State == PlaybackState.Playing)
+            {
+                player.Pause();
+                uiEventBus.Publish(new PlaybackStateChanged(false));
+            }
+            else
+            {
+                var res = player.Play();
+                uiEventBus.Publish(new PlaybackStateChanged(res.Success));
+                if (res.Success)
+                {
+                    Application.AddTimeout(TimeSpan.FromMilliseconds(100), () =>
+                    {
+                        TrackSong();
+                        return true;
+                    });
+                }
+            }
+        });
+
+        // Seek relative
+        uiEventBus.Subscribe<SeekRelativeRequested>(msg =>
+        {
+            var songInfo = player.GetSongInfo();
+            if (songInfo.Success)
+            {
+                var newTime = songInfo.Value.CurrentTime + msg.Seconds;
+                if (newTime < 0) newTime = 0;
+                if (newTime > songInfo.Value.TotalTimeInSeconds) newTime = songInfo.Value.TotalTimeInSeconds;
+                player.ChangeCurrentSongTime(newTime);
+            }
+        });
+
+        // Volume
+        uiEventBus.Subscribe<VolumeChanged>(msg =>
+        {
+            player.SetVolume(msg.Value);
+        });
+
+        // Reload playlist command
+        uiEventBus.Subscribe<ReloadPlaylist>(msg =>
+        {
+            ReloadPlaylist(msg.DirectoryPath);
+            // publish updated playlist names for UI consumers
+            var names = Playlist.Select(f => f.Name).ToList();
+            uiEventBus.Publish(new PlaylistUpdated(names));
+        });
+
+        // update UI when playback state changed
+        uiEventBus.Subscribe<PlaybackStateChanged>(msg =>
+        {
+            // update buttons text on the UI thread
+            Application.Invoke(() =>
+            {
+                playPauseButton?.Text = msg.IsPlaying ? "||" : "|>";
+            });
+        });
+
+        // Example: external publisher can update progress UI by sending TrackProgress,
+        // but here we'll keep using TrackSong periodic check
+        uiEventBus.Subscribe<TrackProgress>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                if (progressBar is not null)
+                {
+                    progressBar.Fraction = (float)msg.CurrentSeconds / Math.Max(1, msg.TotalSeconds);
+                    progressBar.Title = $"Playing: {msg.Name} {FormatTime(msg.CurrentSeconds, msg.TotalSeconds)}";
+                }
+            });
+        });
     }
 
     private void OnChanged(object sender, FileSystemEventArgs e)
@@ -55,7 +163,7 @@ public sealed class MainWindowView : Window
         Playlist = [.. MusicListHelper.GetMusicList(Globals.MuseDirectory)];
     }
 
-    public void InitControls()
+    public void RegisterControls()
     {
         // Buttons
         var buttonsFrame = InitButtonsFrameView();
@@ -75,7 +183,10 @@ public sealed class MainWindowView : Window
         Add(buttonsFrame);
 
         Add(InitProgressBar());
-        Add(InitVolumeSlider());
+
+        //Add(InitVolumeSlider());
+        volumeSlider = new VolumeView(uiEventBus, Pos.Top(progressBar) - VolumeSliderHeight);
+        Add(volumeSlider);
 
         var musicListFrame = InitMusicListFrame();
         var musicList = InitMusicList();
@@ -131,7 +242,7 @@ public sealed class MainWindowView : Window
         };
     }
 
-    public void InitStyles()
+    public void RegisterStyles()
     {
         X = 0;
         Y = 1;
@@ -222,8 +333,9 @@ public sealed class MainWindowView : Window
 
         volumeSlider.OptionsChanged += (sender, e) =>
         {
-            var value = e.Options.FirstOrDefault().Key;
-            player.SetVolume(value);
+            uiEventBus.Publish(new VolumeChanged(e.Options.FirstOrDefault().Key));
+            //var value = e.Options.FirstOrDefault().Key;
+            //player.SetVolume(value);
         };
 
         volumeSlider.SetOption(10);
