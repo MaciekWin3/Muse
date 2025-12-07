@@ -2,14 +2,13 @@
 
 public static class Globals
 {
-    public static string MuseDirectory
+    public static string? MuseDirectory
     {
-        get => museDirectory;
-        set => museDirectory = value
+        get;
+        set => field = value
             ?? throw new ArgumentNullException(nameof(MuseDirectory));
     }
 
-    private static string museDirectory = string.Empty;
 
     public const int BUTTONS_FRAME_HEIGHT = 3;
     public const int BUTTONS_HEIGHT = 2;
