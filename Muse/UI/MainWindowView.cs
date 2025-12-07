@@ -14,6 +14,7 @@ public sealed class MainWindowView : Window
 {
     private readonly IPlayerService player;
 
+    // Components
     private ControlPanelView controlPanelView = null!;
     private MusicListView musicListView = null!;
     private ProgressBarView progressBarView = null!;
@@ -24,7 +25,6 @@ public sealed class MainWindowView : Window
     public List<FileInfo> Playlist { get; set; }
 
     private readonly IUiEventBus uiEventBus;
-
 
     public MainWindowView(IPlayerService player, IUiEventBus uiEventBus)
     {
@@ -37,7 +37,7 @@ public sealed class MainWindowView : Window
         RegisterControls();
         RegisterStyles();
 
-        uiEventBus.Publish(new PlaylistUpdated(Playlist.Select(f => f.Name).ToList()));
+        uiEventBus.Publish(new PlaylistUpdated([.. Playlist.Select(f => f.Name)]));
     }
 
     private void RegisterBusHandlers()
@@ -46,7 +46,7 @@ public sealed class MainWindowView : Window
         uiEventBus.Subscribe<SongSelected>(msg =>
         {
             // load & play
-            uiEventBus.Publish(new TogglePlayRequested());
+            uiEventBus.Publish(new PlayRequested());
             player.Load(msg.FullPath);
             var result = player.Play();
             if (result.Success)
@@ -70,10 +70,12 @@ public sealed class MainWindowView : Window
         {
             if (player.State == PlaybackState.Playing)
             {
+                uiEventBus.Publish(new PauseRequested());
                 player.Pause();
             }
             else
             {
+                uiEventBus.Publish(new PlayRequested());
                 var res = player.Play();
                 if (res.Success)
                 {
@@ -134,15 +136,6 @@ public sealed class MainWindowView : Window
             });
         });
 
-        uiEventBus.Subscribe<PlaylistUpdated>(msg =>
-        {
-            // TODO
-            Application.Invoke(() =>
-            {
-                //musicList?.SetSource(new ObservableCollection<string>(msg.Names));
-            });
-        });
-
         uiEventBus.Subscribe<ReloadPlaylist>(msg =>
         {
             ReloadPlaylist(msg.DirectoryPath);
@@ -166,25 +159,17 @@ public sealed class MainWindowView : Window
 
     public void RegisterControls()
     {
-        // Buttons
-
         controlPanelView = new ControlPanelView(uiEventBus, 0, Pos.Bottom(this) - 6);
         Add(controlPanelView);
 
         progressBarView = new ProgressBarView(uiEventBus, 0, Pos.Top(controlPanelView) - Globals.PROGRESS_BAR_HEIGHT);
         Add(progressBarView);
 
-        //Add(InitVolumeSlider());
         volumeSlider = new VolumeView(uiEventBus, 0, Pos.Top(progressBarView) - Globals.VOLUME_SLIDER_HEIGHT);
         Add(volumeSlider);
 
-        int bottomReserved = CalculateReservedBottomSpace();
-        musicListView = new MusicListView(uiEventBus, player, 0, 0, bottomReserved);
+        musicListView = new MusicListView(uiEventBus, player, 0, 0, CalculateReservedBottomSpace());
         Add(musicListView);
-        //var musicListFrame = InitMusicListFrame();
-        //var musicList = InitMusicList();
-
-        //musicListFrame.Add(musicList);
 
         Application.AddTimeout(TimeSpan.FromSeconds(1), () =>
         {
@@ -284,7 +269,7 @@ public sealed class MainWindowView : Window
         }
     }
 
-    private string FormatTime(int current, int total)
+    private static string FormatTime(int current, int total)
     {
         int cm = current / 60;
         int cs = current % 60;
@@ -304,16 +289,5 @@ public sealed class MainWindowView : Window
 
         Playlist = [.. MusicListHelper.GetMusicList(path)];
         NumberOfSongs = Playlist.Count;
-
-        /*
-        if (musicList is not null)
-        {
-            // Update ListView source on the UI/main loop
-            Application.Invoke(() =>
-            {
-                musicList.SetSource(new ObservableCollection<string>(Playlist.Select(f => f.Name)));
-            });
-        }
-        */
     }
 }

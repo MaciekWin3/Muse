@@ -1,4 +1,5 @@
-﻿using Muse.Utils;
+﻿using Muse.UI.Bus;
+using Muse.Utils;
 using Muse.YouTube;
 using System.Text;
 using Terminal.Gui.App;
@@ -10,9 +11,11 @@ namespace Muse.UI.Views;
 public class MenuBarView : MenuBarv2
 {
     private readonly IYoutubeDownloadService youtubeDownloadService;
-    public MenuBarView(IYoutubeDownloadService youtubeDownloadService)
+    private readonly IUiEventBus uiEventBus;
+    public MenuBarView(IYoutubeDownloadService youtubeDownloadService, IUiEventBus uiEventBus)
     {
         this.youtubeDownloadService = youtubeDownloadService;
+        this.uiEventBus = uiEventBus;
 
         Menus =
 [
@@ -32,8 +35,6 @@ public class MenuBarView : MenuBarv2
                     new("From YT", "Download file from YT", () => ShowDownloadDialog())
                 })
             ];
-
-        this.youtubeDownloadService = youtubeDownloadService;
     }
 
     private void OpenFolder()
@@ -48,14 +49,17 @@ public class MenuBarView : MenuBarv2
 
         Application.Run(fileExplorerDialog);
 
-        var selectedPath = fileExplorerDialog.FilePaths?.FirstOrDefault()?.ToString();
+        var selectedPath = fileExplorerDialog.FilePaths?
+            .FirstOrDefault()?
+            .ToString();
+
         if (!string.IsNullOrWhiteSpace(selectedPath) && Directory.Exists(selectedPath))
         {
             var mw = FindMainWindow();
             if (mw is not null)
             {
                 Globals.MuseDirectory = selectedPath;
-                Application.Invoke(() => mw.ReloadPlaylist(selectedPath));
+                Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(selectedPath)));
             }
         }
     }
