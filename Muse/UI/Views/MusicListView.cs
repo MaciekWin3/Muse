@@ -69,8 +69,16 @@ public sealed class MusicListView : FrameView
                     listView.MoveUp();
                 }
             }
-            playerService.Load(Path.Combine(Globals.MuseDirectory, listView.Source.ToList()[listView.SelectedItem] as string));
-            playerService.Play();
+            var songName = listView.Source.ToList()[listView.SelectedItem] as string;
+            if (!string.IsNullOrEmpty(songName))
+            {
+                playerService.Load(Path.Combine(Globals.MuseDirectory, songName));
+                playerService.Play();
+            }
+            else
+            {
+                MessageBox.ErrorQuery("Error", "Unable to obtain song name.", "Ok");
+            }
         });
     }
 

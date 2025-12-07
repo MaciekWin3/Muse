@@ -33,12 +33,19 @@ public class ControlPanelView : FrameView
 
     private void RegisterBusHandlers()
     {
-        uiBus.Subscribe<TogglePlayRequested>(msg =>
+        uiBus.Subscribe<PlayRequested>(msg =>
         {
             Application.Invoke(() =>
             {
-                // Toggle the button text
-                playPauseButton.Text = playPauseButton.Text == "|>" ? "||" : "|>";
+                playPauseButton.Text = "||";
+            });
+        });
+
+        uiBus.Subscribe<PauseRequested>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                playPauseButton.Text = "|>";
             });
         });
     }
@@ -56,7 +63,6 @@ public class ControlPanelView : FrameView
         playPauseButton.Accepting += (s, e) =>
         {
             uiBus.Publish(new TogglePlayRequested());
-            playPauseButton.Text = playPauseButton.Text == "|>" ? "||" : "|>";
             e.Handled = true;
         };
 
