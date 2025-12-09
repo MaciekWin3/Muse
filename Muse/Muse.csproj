@@ -20,13 +20,10 @@
 	<PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="System.Text.Json" Version="10.0.0" />
     <PackageReference Include="Terminal.Gui" Version="2.0.0-develop.4636" />
     <PackageReference Include="YoutubeExplode" Version="6.5.6" />
-    <PackageReference Include="YoutubeExplode.Converter" Version="6.5.6" />
   </ItemGroup>
 </Project>
