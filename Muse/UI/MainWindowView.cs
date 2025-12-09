@@ -32,9 +32,8 @@ public sealed class MainWindowView : Window
     private Action<SeekRelativeRequested>? seekRelativeHandler;
     private Action<VolumeChanged>? volumeChangedHandler;
     private Action<MuteToggle>? muteToggleHandler;
-    private Action<ReloadPlaylist>? reloadPlaylistHandler1;
+    private Action<ReloadPlaylist>? reloadPlaylistHandler;
     private Action<TrackProgress>? trackProgressHandler;
-    private Action<ReloadPlaylist>? reloadPlaylistHandler2;
     private Action<PreviousSongRequested>? previousSongHandler;
     private Action<NextSongRequested>? nextSongHandler;
     private FileSystemEventHandler? fileSystemEventHandler;
@@ -152,14 +151,14 @@ public sealed class MainWindowView : Window
         uiEventBus.Subscribe(muteToggleHandler);
 
         // Reload playlist command
-        reloadPlaylistHandler1 = msg =>
+        reloadPlaylistHandler = msg =>
         {
             ReloadPlaylist(msg.DirectoryPath);
             // publish updated playlist names for UI consumers
             var names = Playlist.Select(f => f.Name).ToList();
             uiEventBus.Publish(new PlaylistUpdated(names));
         };
-        uiEventBus.Subscribe(reloadPlaylistHandler1);
+        uiEventBus.Subscribe(reloadPlaylistHandler);
 
         // Example: external publisher can update progress UI by sending TrackProgress,
         // but here we'll keep using TrackSong periodic check
@@ -345,12 +344,10 @@ public sealed class MainWindowView : Window
                 uiEventBus.Unsubscribe(volumeChangedHandler);
             if (muteToggleHandler != null)
                 uiEventBus.Unsubscribe(muteToggleHandler);
-            if (reloadPlaylistHandler1 != null)
-                uiEventBus.Unsubscribe(reloadPlaylistHandler1);
+            if (reloadPlaylistHandler != null)
+                uiEventBus.Unsubscribe(reloadPlaylistHandler);
             if (trackProgressHandler != null)
                 uiEventBus.Unsubscribe(trackProgressHandler);
-            if (reloadPlaylistHandler2 != null)
-                uiEventBus.Unsubscribe(reloadPlaylistHandler2);
             if (previousSongHandler != null)
                 uiEventBus.Unsubscribe(previousSongHandler);
             if (nextSongHandler != null)
