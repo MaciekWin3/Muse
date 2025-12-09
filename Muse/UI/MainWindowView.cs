@@ -279,7 +279,6 @@ public sealed class MainWindowView : Window
         return $" {cm}:{cs:00} / {tm}:{ts:00}";
     }
 
-    // Add this public helper to the MainWindow class
     public void ReloadPlaylist(string path)
     {
         if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
