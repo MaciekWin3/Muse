@@ -16,7 +16,7 @@ public sealed class VolumeView : Slider
     private const int DefaultVolumePercent = 50;
     private static readonly int DefaultVolumeChoice = DefaultVolumePercent / VolumeStep;
 
-    private int previousChoice = 10;
+    private int previousChoice = DefaultVolumeChoice;
 
     private readonly IUiEventBus uiBus;
     private IEnumerable<SliderOption<object>> VolumeOptions =>
