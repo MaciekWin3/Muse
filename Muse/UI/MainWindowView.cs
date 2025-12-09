@@ -38,6 +38,7 @@ public sealed class MainWindowView : Window
     private Action<PreviousSongRequested>? previousSongHandler;
     private Action<NextSongRequested>? nextSongHandler;
     private FileSystemEventHandler? fileSystemEventHandler;
+    private EventHandler<MouseEventArgs>? mouseEventHandler;
 
     public MainWindowView(IPlayerService player, IUiEventBus uiEventBus)
     {
@@ -232,7 +233,7 @@ public sealed class MainWindowView : Window
         // musicList <- REMOVE
         //Add(musicListFrame);
 
-        Application.Mouse.MouseEvent += (sender, e) =>
+        mouseEventHandler = (sender, e) =>
         {
             if (e.View is null)
             {
@@ -258,6 +259,7 @@ public sealed class MainWindowView : Window
                 }
             }
         };
+        Application.Mouse.MouseEvent += mouseEventHandler;
     }
 
     public void RegisterStyles()
@@ -358,6 +360,12 @@ public sealed class MainWindowView : Window
             if (fileSystemEventHandler != null && watcher != null)
             {
                 watcher.Changed -= fileSystemEventHandler;
+            }
+
+            // Unsubscribe from Mouse event
+            if (mouseEventHandler != null)
+            {
+                Application.Mouse.MouseEvent -= mouseEventHandler;
             }
 
             // Dispose FileSystemWatcher
