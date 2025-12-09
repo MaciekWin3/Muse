@@ -26,6 +26,19 @@ public sealed class MainWindowView : Window
 
     private readonly IUiEventBus uiEventBus;
 
+    // Event handler references for cleanup
+    private Action<SongSelected>? songSelectedHandler;
+    private Action<TogglePlayRequested>? togglePlayHandler;
+    private Action<SeekRelativeRequested>? seekRelativeHandler;
+    private Action<VolumeChanged>? volumeChangedHandler;
+    private Action<MuteToggle>? muteToggleHandler;
+    private Action<ReloadPlaylist>? reloadPlaylistHandler1;
+    private Action<TrackProgress>? trackProgressHandler;
+    private Action<ReloadPlaylist>? reloadPlaylistHandler2;
+    private Action<PreviousSongRequested>? previousSongHandler;
+    private Action<NextSongRequested>? nextSongHandler;
+    private FileSystemEventHandler? fileSystemEventHandler;
+
     public MainWindowView(IPlayerService player, IUiEventBus uiEventBus)
     {
         this.player = player;
@@ -43,7 +56,7 @@ public sealed class MainWindowView : Window
     private void RegisterBusHandlers()
     {
         // SongSelected => load + play
-        uiEventBus.Subscribe<SongSelected>(msg =>
+        songSelectedHandler = msg =>
         {
             // load & play
             uiEventBus.Publish(new PlayRequested());
@@ -64,10 +77,11 @@ public sealed class MainWindowView : Window
                 // show error on UI thread
                 Application.Invoke(() => MessageBox.ErrorQuery("Error", "Cannot play file", "OK"));
             }
-        });
+        };
+        uiEventBus.Subscribe(songSelectedHandler);
 
         // Toggle play/pause requested: decide based on player state
-        uiEventBus.Subscribe<TogglePlayRequested>(_ =>
+        togglePlayHandler = _ =>
         {
             var songInfoResult = player.GetSongInfo();
             if (songInfoResult.IsFailure)
@@ -95,10 +109,11 @@ public sealed class MainWindowView : Window
                     });
                 }
             }
-        });
+        };
+        uiEventBus.Subscribe(togglePlayHandler);
 
         // Seek relative
-        uiEventBus.Subscribe<SeekRelativeRequested>(msg =>
+        seekRelativeHandler = msg =>
         {
             var songInfo = player.GetSongInfo();
             if (songInfo.Success)
@@ -114,10 +129,11 @@ public sealed class MainWindowView : Window
                 }
                 player.ChangeCurrentSongTime(newTime);
             }
-        });
+        };
+        uiEventBus.Subscribe(seekRelativeHandler);
 
         // Volume
-        uiEventBus.Subscribe<VolumeChanged>(msg =>
+        volumeChangedHandler = msg =>
         {
             if (msg.Volume < 0f || msg.Volume > 1f)
             {
@@ -125,25 +141,28 @@ public sealed class MainWindowView : Window
             }
 
             player.SetVolume(msg.Volume);
-        });
+        };
+        uiEventBus.Subscribe(volumeChangedHandler);
 
-        uiEventBus.Subscribe<MuteToggle>(msg =>
+        muteToggleHandler = msg =>
         {
             uiEventBus.Publish(new VolumeChanged(msg.IsMuted ? 0f : Globals.Volume));
-        });
+        };
+        uiEventBus.Subscribe(muteToggleHandler);
 
         // Reload playlist command
-        uiEventBus.Subscribe<ReloadPlaylist>(msg =>
+        reloadPlaylistHandler1 = msg =>
         {
             ReloadPlaylist(msg.DirectoryPath);
             // publish updated playlist names for UI consumers
             var names = Playlist.Select(f => f.Name).ToList();
             uiEventBus.Publish(new PlaylistUpdated(names));
-        });
+        };
+        uiEventBus.Subscribe(reloadPlaylistHandler1);
 
         // Example: external publisher can update progress UI by sending TrackProgress,
         // but here we'll keep using TrackSong periodic check
-        uiEventBus.Subscribe<TrackProgress>(msg =>
+        trackProgressHandler = msg =>
         {
             Application.Invoke(() =>
             {
@@ -153,22 +172,26 @@ public sealed class MainWindowView : Window
                     progressBarView.Title = $"Playing: {msg.Name} {FormatTime(msg.CurrentSeconds, msg.TotalSeconds)}";
                 }
             });
-        });
+        };
+        uiEventBus.Subscribe(trackProgressHandler);
 
-        uiEventBus.Subscribe<ReloadPlaylist>(msg =>
+        reloadPlaylistHandler2 = msg =>
         {
             ReloadPlaylist(msg.DirectoryPath);
-        });
+        };
+        uiEventBus.Subscribe(reloadPlaylistHandler2);
 
-        uiEventBus.Subscribe<PreviousSongRequested>(_ =>
+        previousSongHandler = _ =>
         {
             uiEventBus.Publish(new ChangeSongIndexRequested(-1));
-        });
+        };
+        uiEventBus.Subscribe(previousSongHandler);
 
-        uiEventBus.Subscribe<NextSongRequested>(_ =>
+        nextSongHandler = _ =>
         {
             uiEventBus.Publish(new ChangeSongIndexRequested(+1));
-        });
+        };
+        uiEventBus.Subscribe(nextSongHandler);
     }
 
     private void OnChanged(object sender, FileSystemEventArgs e)
@@ -195,7 +218,8 @@ public sealed class MainWindowView : Window
             watcher.Path = Globals.MuseDirectory;
             watcher.NotifyFilter = NotifyFilters.LastWrite;
             watcher.Filter = "*.*";
-            watcher.Changed += new FileSystemEventHandler(OnChanged);
+            fileSystemEventHandler = new FileSystemEventHandler(OnChanged);
+            watcher.Changed += fileSystemEventHandler;
             watcher.EnableRaisingEvents = true;
             if (NumberOfSongs != Playlist.Count)
             {
@@ -307,5 +331,44 @@ public sealed class MainWindowView : Window
 
         Playlist = [.. MusicListHelper.GetMusicList(path)];
         NumberOfSongs = Playlist.Count;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            // Unsubscribe from all event bus handlers
+            if (songSelectedHandler != null)
+                uiEventBus.Unsubscribe(songSelectedHandler);
+            if (togglePlayHandler != null)
+                uiEventBus.Unsubscribe(togglePlayHandler);
+            if (seekRelativeHandler != null)
+                uiEventBus.Unsubscribe(seekRelativeHandler);
+            if (volumeChangedHandler != null)
+                uiEventBus.Unsubscribe(volumeChangedHandler);
+            if (muteToggleHandler != null)
+                uiEventBus.Unsubscribe(muteToggleHandler);
+            if (reloadPlaylistHandler1 != null)
+                uiEventBus.Unsubscribe(reloadPlaylistHandler1);
+            if (trackProgressHandler != null)
+                uiEventBus.Unsubscribe(trackProgressHandler);
+            if (reloadPlaylistHandler2 != null)
+                uiEventBus.Unsubscribe(reloadPlaylistHandler2);
+            if (previousSongHandler != null)
+                uiEventBus.Unsubscribe(previousSongHandler);
+            if (nextSongHandler != null)
+                uiEventBus.Unsubscribe(nextSongHandler);
+
+            // Unsubscribe from FileSystemWatcher
+            if (fileSystemEventHandler != null && watcher != null)
+            {
+                watcher.Changed -= fileSystemEventHandler;
+            }
+
+            // Dispose FileSystemWatcher
+            watcher?.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 }
