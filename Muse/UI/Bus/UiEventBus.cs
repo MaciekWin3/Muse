@@ -22,9 +22,9 @@ public class UiEventBus : IUiEventBus
                 {
                     ((Action<T>)d).Invoke(message);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // TODO
+                    Console.Error.WriteLine($"Error in event handler: {ex}");
                 }
             }
         }
