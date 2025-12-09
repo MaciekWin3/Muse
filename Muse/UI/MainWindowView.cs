@@ -155,10 +155,6 @@ public sealed class MainWindowView : Window
             });
         });
 
-        uiEventBus.Subscribe<ReloadPlaylist>(msg =>
-        {
-            ReloadPlaylist(msg.DirectoryPath);
-        });
 
         uiEventBus.Subscribe<PreviousSongRequested>(_ =>
         {
