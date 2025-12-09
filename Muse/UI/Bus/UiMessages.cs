@@ -10,6 +10,7 @@
     public sealed record PreviousSongRequested();
     public sealed record NextSongRequested();
     public sealed record VolumeChanged(float Volume);
+    public sealed record MuteToggle(bool IsMuted);
     public sealed record ReloadPlaylist(string DirectoryPath);
 
     public sealed record ChangeSongIndexRequested(int Offset); // positive or negative

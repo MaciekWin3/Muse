@@ -9,10 +9,19 @@ public sealed class VolumeView : Slider
 {
     private const int VolumeSliderHeight = 4;
 
-    private readonly IUiEventBus uiBus;
+    // Settings
+    private const int VolumeStep = 5;
+    private const int MaxVolume = 100;
+    private const int StepsCount = (MaxVolume / VolumeStep) + 1;
+    private const int DefaultVolumePercent = 50;
+    private static readonly int DefaultVolumeChoice = DefaultVolumePercent / VolumeStep;
 
-    private IEnumerable<SliderOption<object>> VolumeOptions { get; set; } = Enumerable.Range(0, 21)
-            .Select(i => i * 5)
+    private int previousChoice = 10;
+
+    private readonly IUiEventBus uiBus;
+    private IEnumerable<SliderOption<object>> VolumeOptions =>
+        Enumerable.Range(0, StepsCount)
+            .Select(step => step * VolumeStep)
             .Select(v => new SliderOption<object>
             {
                 Data = v,
@@ -35,14 +44,37 @@ public sealed class VolumeView : Slider
         ShowEndSpacing = false;
 
         OptionsChanged += (sender, e) =>
-         {
-             int volumeOption = e.Options.FirstOrDefault().Key;
-             float volume = CalculateVolume(volumeOption);
-             uiBus.Publish(new VolumeChanged(volume));
-         };
+        {
+            int stepIndex = e.Options.FirstOrDefault().Key;
 
-        SetOption(10);
+            if (stepIndex != 0)
+            {
+                previousChoice = stepIndex;
+            }
+
+            float volume = CalculateVolume(stepIndex);
+            uiBus.Publish(new VolumeChanged(volume));
+        };
+
+        SetOption(DefaultVolumeChoice);
+        RegisterBusHandlers();
     }
 
-    private float CalculateVolume(int volumeOption) => (1f / Options.Count) * volumeOption;
+    private void RegisterBusHandlers()
+    {
+        uiBus.Subscribe<MuteToggle>(msg =>
+        {
+            if (msg.IsMuted)
+            {
+                SetOption(0);
+            }
+            else
+            {
+                SetOption(previousChoice);
+            }
+        });
+    }
+
+    private float CalculateVolume(int volumeOption)
+        => (1f / Options.Count) * volumeOption;
 }

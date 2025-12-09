@@ -127,6 +127,11 @@ public sealed class MainWindowView : Window
             player.SetVolume(msg.Volume);
         });
 
+        uiEventBus.Subscribe<MuteToggle>(msg =>
+        {
+            uiEventBus.Publish(new VolumeChanged(msg.IsMuted ? 0f : Globals.Volume));
+        });
+
         // Reload playlist command
         uiEventBus.Subscribe<ReloadPlaylist>(msg =>
         {
