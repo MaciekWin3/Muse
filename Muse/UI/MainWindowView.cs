@@ -175,11 +175,6 @@ public sealed class MainWindowView : Window
         };
         uiEventBus.Subscribe(trackProgressHandler);
 
-        reloadPlaylistHandler2 = msg =>
-        {
-            ReloadPlaylist(msg.DirectoryPath);
-        };
-        uiEventBus.Subscribe(reloadPlaylistHandler2);
 
         previousSongHandler = _ =>
         {
