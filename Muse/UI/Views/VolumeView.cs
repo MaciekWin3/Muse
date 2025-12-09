@@ -76,5 +76,5 @@ public sealed class VolumeView : Slider
     }
 
     private float CalculateVolume(int volumeOption)
-        => (1f / Options.Count) * volumeOption;
+        => (volumeOption * VolumeStep) / 100f;
 }
