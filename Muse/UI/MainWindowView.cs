@@ -175,7 +175,6 @@ public sealed class MainWindowView : Window
         };
         uiEventBus.Subscribe(trackProgressHandler);
 
-
         previousSongHandler = _ =>
         {
             uiEventBus.Publish(new ChangeSongIndexRequested(-1));
