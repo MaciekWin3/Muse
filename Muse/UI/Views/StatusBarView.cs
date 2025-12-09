@@ -28,13 +28,31 @@ public class StatusBarView : StatusBar
             Key = Key.Backspace,
             Action = () =>
             {
-                uiEventBus.Publish(new VolumeChanged(0));
+                var muteShortcutSubView = SubViews.FirstOrDefault(s => s.Title.Contains("Mute", StringComparison.OrdinalIgnoreCase));
+                if (muteShortcutSubView is not null)
+                {
+                    uiEventBus.Publish(new MuteToggle(muteShortcutSubView.Title == "Mute"));
+                }
             }
         });
 
         Add(new Shortcut()
         {
             Title = $"OS: {Environment.OSVersion}"
+        });
+
+        RegisterBusHandlers();
+    }
+
+    private void RegisterBusHandlers()
+    {
+        uiEventBus.Subscribe<VolumeChanged>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                var muteShortcut = SubViews.FirstOrDefault(s => s.Title.Contains("Mute", StringComparison.OrdinalIgnoreCase));
+                muteShortcut?.Title = msg.Volume == 0f ? "Unmute" : "Mute";
+            });
         });
     }
 }

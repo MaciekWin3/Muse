@@ -9,7 +9,18 @@ public static class Globals
             ?? throw new ArgumentNullException(nameof(MuseDirectory));
     } = string.Empty;
 
-    public static float Volume { get; set; } = 0.5f;
+    public static float Volume
+    {
+        get;
+        set
+        {
+            if (value == 0f)
+            {
+                return;
+            }
+            field = value;
+        }
+    } = 0.5f;
 
     public const int BUTTONS_FRAME_HEIGHT = 3;
     public const int BUTTONS_HEIGHT = 2;
