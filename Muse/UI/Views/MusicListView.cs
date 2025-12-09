@@ -42,7 +42,6 @@ public sealed class MusicListView : FrameView
 
     private void RegisterBusHandlers()
     {
-        // When playlist updates, update the source
         uiEventBus.Subscribe<PlaylistUpdated>(msg =>
         {
             Application.Invoke(() =>
@@ -52,34 +51,40 @@ public sealed class MusicListView : FrameView
                 );
             });
         });
-
         uiEventBus.Subscribe<ChangeSongIndexRequested>(msg =>
         {
-            if (msg.Offset > 0)
+            var count = listView.Source.Count;
+
+            if (count <= 1 || msg.Offset == 0)
             {
-                for (int i = 0; i < msg.Offset; i++)
-                {
-                    listView.MoveDown();
-                }
+                return;
             }
-            else if (msg.Offset < 0)
+
+            int currentIndex = listView.SelectedItem;
+            int newIndex = (currentIndex + msg.Offset) % count;
+
+            if (newIndex < 0)
             {
-                for (int i = 0; i < -msg.Offset; i++)
-                {
-                    listView.MoveUp();
-                }
+                newIndex += count;
             }
+
+            listView.SelectedItem = newIndex;
+
             var songName = listView.Source.ToList()[listView.SelectedItem] as string;
-            if (!string.IsNullOrEmpty(songName))
+
+            switch (songName)
             {
-                playerService.Load(Path.Combine(Globals.MuseDirectory, songName));
-                playerService.Play();
-            }
-            else
-            {
-                MessageBox.ErrorQuery("Error", "Unable to obtain song name.", "Ok");
+                case null:
+                case "":
+                    MessageBox.ErrorQuery("Error", "Unable to obtain song name.", "Ok");
+                    break;
+                default:
+                    playerService.Load(Path.Combine(Globals.MuseDirectory, songName));
+                    playerService.Play();
+                    break;
             }
         });
+
     }
 
     private void RegisterEvents()
