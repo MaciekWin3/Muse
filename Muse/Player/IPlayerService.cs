@@ -10,7 +10,7 @@ public interface IPlayerService
     Result Play();
     Result Pause();
     Result Stop();
-    Result SetVolume(int percent);
+    Result SetVolume(float volume);
     Result<SongInfo> GetSongInfo();
     Result ChangeCurrentSongTime(int seconds);
     void Dispose();

@@ -48,6 +48,7 @@ public sealed class MainWindowView : Window
             // load & play
             uiEventBus.Publish(new PlayRequested());
             player.Load(msg.FullPath);
+            player.SetVolume(Globals.Volume);
             var result = player.Play();
             if (result.Success)
             {
@@ -110,7 +111,7 @@ public sealed class MainWindowView : Window
         // Volume
         uiEventBus.Subscribe<VolumeChanged>(msg =>
         {
-            player.SetVolume(msg.Value);
+            player.SetVolume(msg.Volume);
         });
 
         // Reload playlist command

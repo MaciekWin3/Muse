@@ -54,12 +54,13 @@ public class PlayerService : IPlayerService, IDisposable
         return Result.Fail("Unable to stop audio file");
     }
 
-    public Result SetVolume(int percent)
+    public Result SetVolume(float volume)
     {
-        float volume = (float)Math.Max(0.0, Math.Min(1.0, percent / 10.0));
         if (audioFileReader is not null)
         {
             audioFileReader.Volume = volume;
+            // TODO
+            Globals.Volume = volume;
             return Result.Ok();
         }
         return Result.Fail("Unable to set volume");

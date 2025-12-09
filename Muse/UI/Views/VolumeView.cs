@@ -11,19 +11,19 @@ public sealed class VolumeView : Slider
 
     private readonly IUiEventBus uiBus;
 
-    public VolumeView(IUiEventBus uiBus, Pos x, Pos y)
-    {
-        this.uiBus = uiBus;
-
-        Options = Enumerable.Range(0, 21)
+    private IEnumerable<SliderOption<object>> VolumeOptions { get; set; } = Enumerable.Range(0, 21)
             .Select(i => i * 5)
             .Select(v => new SliderOption<object>
             {
                 Data = v,
                 Legend = v.ToString()
-            })
-            .ToList();
+            });
 
+    public VolumeView(IUiEventBus uiBus, Pos x, Pos y)
+    {
+        this.uiBus = uiBus;
+
+        Options = [.. VolumeOptions];
         X = x;
         Y = y;
         Title = "Volume";
@@ -36,16 +36,13 @@ public sealed class VolumeView : Slider
 
         OptionsChanged += (sender, e) =>
          {
-             var value = e.Options.FirstOrDefault().Key;
-             uiBus.Publish(new VolumeChanged(value));
+             var volumeOption = e.Options.FirstOrDefault().Key;
+             var volume = CalculateVolume(volumeOption);
+             uiBus.Publish(new VolumeChanged(volume));
          };
 
         SetOption(10);
-
-        RegisterBusHandlers();
     }
 
-    private void RegisterBusHandlers()
-    {
-    }
+    private float CalculateVolume(int volumeOption) => (1f / Options.Count) * volumeOption;
 }
