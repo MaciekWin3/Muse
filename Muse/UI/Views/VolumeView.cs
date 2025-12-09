@@ -36,8 +36,8 @@ public sealed class VolumeView : Slider
 
         OptionsChanged += (sender, e) =>
          {
-             var volumeOption = e.Options.FirstOrDefault().Key;
-             var volume = CalculateVolume(volumeOption);
+             int volumeOption = e.Options.FirstOrDefault().Key;
+             float volume = CalculateVolume(volumeOption);
              uiBus.Publish(new VolumeChanged(volume));
          };
 

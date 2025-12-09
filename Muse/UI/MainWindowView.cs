@@ -69,6 +69,14 @@ public sealed class MainWindowView : Window
         // Toggle play/pause requested: decide based on player state
         uiEventBus.Subscribe<TogglePlayRequested>(_ =>
         {
+            var songInfoResult = player.GetSongInfo();
+            if (songInfoResult.IsFailure)
+            {
+                MessageBox.ErrorQuery("Error", "Please select a song", "OK");
+                uiEventBus.Publish(new PauseRequested());
+                return;
+            }
+
             if (player.State == PlaybackState.Playing)
             {
                 uiEventBus.Publish(new PauseRequested());
@@ -111,6 +119,11 @@ public sealed class MainWindowView : Window
         // Volume
         uiEventBus.Subscribe<VolumeChanged>(msg =>
         {
+            if (msg.Volume < 0f || msg.Volume > 1f)
+            {
+                return;
+            }
+
             player.SetVolume(msg.Volume);
         });
 
