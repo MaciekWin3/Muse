@@ -17,7 +17,7 @@ dotnet tool install --global Muse
 
 App is still under development, so update frequently:
 ```bash
-dotnet tool update --global Whale.Tui
+dotnet tool update --global Muse
 ```
 
 # Contributing 🤝
