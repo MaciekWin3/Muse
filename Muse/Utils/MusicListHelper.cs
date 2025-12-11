@@ -1,14 +1,25 @@
-﻿namespace Muse.Utils
+﻿namespace Muse.Utils;
+
+public static class MusicListHelper
 {
-    public static class MusicListHelper
+    public static IEnumerable<FileInfo> GetMusicList(string directoryPath, bool includeSubfolders = true)
     {
-        public static IEnumerable<FileInfo> GetMusicList(string directoryPath)
+        var directory = new DirectoryInfo(directoryPath);
+
+        if (!directory.Exists)
         {
-            var d = new DirectoryInfo(directoryPath);
+            yield break;
+        }
 
-            FileInfo[] Files = d.GetFiles("*.mp*");
+        var searchOption = includeSubfolders
+            ? SearchOption.AllDirectories
+            : SearchOption.TopDirectoryOnly;
 
-            foreach (FileInfo file in Files)
+        var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var file in directory.GetFiles("*.mp*", searchOption))
+        {
+            if (seenPaths.Add(file.FullName))
             {
                 yield return file;
             }
