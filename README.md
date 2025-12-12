@@ -12,12 +12,12 @@ If you do not want to use Spotify, YouTube Music, or similar services, and inste
 ## Installation 📦
 To install muse use this command:
 ```bash
-dotnet tool install --global Muse
+dotnet tool install --global MusePlayer
 ```
 
 App is still under development, so update frequently:
 ```bash
-dotnet tool update --global Muse
+dotnet tool update --global MusePlayer
 ```
 
 Then to use app just tyoe `muse` in terminal.
