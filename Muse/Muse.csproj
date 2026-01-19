@@ -28,7 +28,7 @@
 	</ItemGroup>
 	<ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="Terminal.Gui" Version="2.0.0-develop.4636" />
     <PackageReference Include="YoutubeExplode" Version="6.5.6" />
