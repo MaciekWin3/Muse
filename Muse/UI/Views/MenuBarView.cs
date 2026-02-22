@@ -12,23 +12,24 @@ public class MenuBarView : MenuBarv2
 {
     private readonly IYoutubeDownloadService youtubeDownloadService;
     private readonly IUiEventBus uiEventBus;
-        public MenuBarView(IYoutubeDownloadService youtubeDownloadService, IUiEventBus uiEventBus)
+    public MenuBarView(IYoutubeDownloadService youtubeDownloadService, IUiEventBus uiEventBus)
+    {
+        this.youtubeDownloadService = youtubeDownloadService;
+        this.uiEventBus = uiEventBus;
+
+        RebuildMenu();
+
+        uiEventBus.Subscribe<RefreshPlaylistsRequested>(_ =>
         {
-            this.youtubeDownloadService = youtubeDownloadService;
-            this.uiEventBus = uiEventBus;
-    
-            RebuildMenu();
-            
-                    uiEventBus.Subscribe<RefreshPlaylistsRequested>(_ =>
-                    {
-                        Application.Invoke(() =>
-                        {
-                            RebuildMenu();
-                        });
-                    });        }
-    
-        private void RebuildMenu()
-        {
+            Application.Invoke(() =>
+            {
+                RebuildMenu();
+            });
+        });
+    }
+
+    private void RebuildMenu()
+    {
             Menus =
                 [
                     new("File", new MenuItemv2[]
