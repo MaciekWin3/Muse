@@ -3,6 +3,7 @@ using Muse.UI.Bus;
 using Muse.UI.Views;
 using Muse.Utils;
 using NAudio.Wave;
+using System.Threading;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -24,19 +25,22 @@ public sealed class MainWindowView : Window
     public List<FileInfo> Playlist { get; set; }
 
     private readonly IUiEventBus uiEventBus;
+    private CancellationTokenSource? _debounceCts;
+    private string _currentDirectory;
 
     public MainWindowView(IPlayerService player, IUiEventBus uiEventBus)
     {
         this.player = player;
         this.uiEventBus = uiEventBus;
+        _currentDirectory = Globals.MuseDirectory;
 
-        Playlist = [.. MusicListHelper.GetMusicList(Globals.MuseDirectory)];
+        Playlist = [.. MusicListHelper.GetMusicList(_currentDirectory)];
         NumberOfSongs = Playlist.Count;
         RegisterBusHandlers();
         RegisterControls();
         RegisterStyles();
 
-        uiEventBus.Publish(new PlaylistUpdated([.. Playlist.Select(f => f.Name)]));
+        uiEventBus.Publish(new PlaylistUpdated(Playlist));
     }
 
     private void RegisterBusHandlers()
@@ -133,8 +137,7 @@ public sealed class MainWindowView : Window
         uiEventBus.Subscribe<ReloadPlaylist>(msg =>
         {
             ReloadPlaylist(msg.DirectoryPath);
-            var names = Playlist.Select(f => f.Name).ToList();
-            uiEventBus.Publish(new PlaylistUpdated(names));
+            uiEventBus.Publish(new PlaylistUpdated(Playlist));
         });
 
         uiEventBus.Subscribe<TrackProgress>(msg =>
@@ -163,7 +166,29 @@ public sealed class MainWindowView : Window
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        Playlist = [.. MusicListHelper.GetMusicList(Globals.MuseDirectory)];
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        Task.Delay(500, token).ContinueWith(t =>
+        {
+            if (t.IsCanceled) return;
+
+            var newPlaylist = MusicListHelper.GetMusicList(_currentDirectory).ToList();
+
+            Application.Invoke(() =>
+            {
+                Playlist = newPlaylist;
+                NumberOfSongs = Playlist.Count;
+                uiEventBus.Publish(new PlaylistUpdated(Playlist));
+                uiEventBus.Publish(new RefreshPlaylistsRequested());
+            });
+        });
+    }
+
+    private void OnRenamed(object sender, RenamedEventArgs e)
+    {
+        OnChanged(sender, e);
     }
 
     public void RegisterControls()
@@ -180,20 +205,15 @@ public sealed class MainWindowView : Window
         musicListView = new MusicListView(uiEventBus, player, 0, 0, CalculateReservedBottomSpace());
         Add(musicListView);
 
-        Application.AddTimeout(TimeSpan.FromSeconds(1), () =>
-        {
-            watcher.Path = Globals.MuseDirectory;
-            watcher.NotifyFilter = NotifyFilters.LastWrite;
-            watcher.Filter = "*.*";
-            watcher.Changed += new FileSystemEventHandler(OnChanged);
-            watcher.EnableRaisingEvents = true;
-            if (NumberOfSongs != Playlist.Count)
-            {
-                // TODO: Handle deletions properly
-            }
-            return true;
-        });
-
+        watcher.Path = Globals.MuseDirectory;
+        watcher.IncludeSubdirectories = true;
+        watcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
+        watcher.Filter = "*.*";
+        watcher.Changed += OnChanged;
+        watcher.Created += OnChanged;
+        watcher.Deleted += OnChanged;
+        watcher.Renamed += OnRenamed;
+        watcher.EnableRaisingEvents = true;
     }
 
     public void RegisterStyles()
@@ -261,7 +281,20 @@ public sealed class MainWindowView : Window
             return;
         }
 
+        _currentDirectory = path;
+        watcher.Path = Globals.MuseDirectory;
+
         Playlist = [.. MusicListHelper.GetMusicList(path)];
         NumberOfSongs = Playlist.Count;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            watcher.Dispose();
+            _debounceCts?.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }
