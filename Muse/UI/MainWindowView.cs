@@ -1,4 +1,4 @@
-﻿using Muse.Player;
+using Muse.Player;
 using Muse.UI.Bus;
 using Muse.UI.Views;
 using Muse.Utils;
@@ -43,8 +43,14 @@ public sealed class MainWindowView : Window
     {
         uiEventBus.Subscribe<SongSelected>(msg =>
         {
+            var loadResult = player.Load(msg.FullPath);
+            if (!loadResult.Success)
+            {
+                uiEventBus.Publish(new PauseRequested());
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", $"Cannot load file: {loadResult.Error}", "OK"));
+                return;
+            }
             uiEventBus.Publish(new PlayRequested());
-            player.Load(msg.FullPath);
             player.SetVolume(Globals.Volume);
             var result = player.Play();
             if (result.Success)
@@ -57,7 +63,7 @@ public sealed class MainWindowView : Window
             }
             else
             {
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", "Cannot play file", "OK"));
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", result.Error, "OK"));
             }
         });
 
