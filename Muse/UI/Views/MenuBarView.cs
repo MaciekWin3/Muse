@@ -12,31 +12,75 @@ public class MenuBarView : MenuBarv2
 {
     private readonly IYoutubeDownloadService youtubeDownloadService;
     private readonly IUiEventBus uiEventBus;
-    public MenuBarView(IYoutubeDownloadService youtubeDownloadService, IUiEventBus uiEventBus)
-    {
-        this.youtubeDownloadService = youtubeDownloadService;
-        this.uiEventBus = uiEventBus;
-
-        Menus =
-[
-            new("File", new MenuItemv2[]
+        public MenuBarView(IYoutubeDownloadService youtubeDownloadService, IUiEventBus uiEventBus)
+        {
+            this.youtubeDownloadService = youtubeDownloadService;
+            this.uiEventBus = uiEventBus;
+    
+            RebuildMenu();
+            
+                    uiEventBus.Subscribe<RefreshPlaylistsRequested>(_ =>
+                    {
+                        Application.Invoke(() =>
+                        {
+                            RebuildMenu();
+                        });
+                    });        }
+    
+        private void RebuildMenu()
+        {
+            Menus =
+                [
+                    new("File", new MenuItemv2[]
+                    {
+                        new("Open", "Open music folder", () => OpenFolder()),
+                        new("Quit", "Quit application", () => Application.RequestStop()),
+                    }),
+                    new("Playlists", GetPlaylistMenuItems()),
+                    new("Help", new MenuItemv2[]
+                    {
+                        new("About", "About Muse", () => ShowAsciiArt()),
+                        new("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
+                        new("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
+                    }),
+                    new("Download", new MenuItemv2[]
+                    {
+                        new("From YT", "Download file from YT", () => ShowDownloadDialog())
+                    })
+                ];
+        }        
+            private MenuItemv2[] GetPlaylistMenuItems()
+            {
+                var items = new List<MenuItemv2>
                 {
-                    new("Open", "Open music folder", () => OpenFolder()),
-                    new("Quit", "Quit application", () => Application.RequestStop()),
-                }),
-                new("Help", new MenuItemv2[]
+                    new("All Songs", "Show all songs", () =>
+                    {
+                        Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(Globals.MuseDirectory)));
+                    })
+                };
+        
+                if (Directory.Exists(Globals.MuseDirectory))
                 {
-                    new("About", "About Muse", () => ShowAsciiArt()),
-                    new("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
-                    new("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
-                }),
-                new("Download", new MenuItemv2[]
-                {
-                    new("From YT", "Download file from YT", () => ShowDownloadDialog())
-                })
-            ];
-    }
-
+                    try
+                    {
+                        var subDirs = Directory.GetDirectories(Globals.MuseDirectory);
+                        foreach (var dir in subDirs)
+                        {
+                            var dirName = Path.GetFileName(dir);
+                            items.Add(new MenuItemv2(dirName, $"Show songs from {dirName}", () =>
+                            {
+                                Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(dir)));
+                            }));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.ErrorQuery("Error", $"Failed to list playlists: {ex.Message}", "Ok");
+                    }
+                }
+        
+                return items.ToArray();
+            }
     private void OpenFolder()
     {
         var fileExplorerDialog = new OpenDialog
@@ -59,6 +103,7 @@ public class MenuBarView : MenuBarv2
             if (mw is not null)
             {
                 Globals.MuseDirectory = selectedPath;
+                RebuildMenu();
                 Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(selectedPath)));
             }
         }
