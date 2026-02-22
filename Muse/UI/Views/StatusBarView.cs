@@ -38,6 +38,27 @@ public class StatusBarView : StatusBar
 
         Add(new Shortcut()
         {
+            Title = "Play/Pause",
+            Key = Key.P,
+            Action = () => uiEventBus.Publish(new TogglePlayRequested())
+        });
+
+        Add(new Shortcut()
+        {
+            Title = "Prev",
+            Key = Key.B,
+            Action = () => uiEventBus.Publish(new PreviousSongRequested())
+        });
+
+        Add(new Shortcut()
+        {
+            Title = "Next",
+            Key = Key.N,
+            Action = () => uiEventBus.Publish(new NextSongRequested())
+        });
+
+        Add(new Shortcut()
+        {
             Title = $"OS: {Environment.OSVersion}"
         });
 
