@@ -1,4 +1,4 @@
-﻿namespace Muse.UI.Bus
+namespace Muse.UI.Bus
 {
     public sealed record SongSelected(string FullPath);
     public sealed record PlayRequested();
@@ -13,5 +13,6 @@
     public sealed record ReloadPlaylist(string DirectoryPath);
     public sealed record ChangeSongIndexRequested(int Offset);
     public sealed record TrackProgress(string Name, int CurrentSeconds, int TotalSeconds);
-    public sealed record PlaylistUpdated(List<string> Names);
+    public sealed record PlaylistUpdated(List<FileInfo> Songs);
+    public sealed record RefreshPlaylistsRequested();
 }
