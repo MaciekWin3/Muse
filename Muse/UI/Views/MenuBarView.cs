@@ -1,6 +1,7 @@
 ﻿using Muse.UI.Bus;
 using Muse.Utils;
 using Muse.YouTube;
+using System.Collections.ObjectModel;
 using System.Text;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
@@ -196,10 +197,40 @@ public class MenuBarView : MenuBarv2
             Width = Dim.Fill()! - 5,
         };
 
-        var spinnerView = new SpinnerView
+        var playlistLabel = new Label()
         {
-            X = Pos.Right(urlTextField) + 2,
-            Y = 2,
+            Title = "Playlist: ",
+            X = 1,
+            Y = Pos.Bottom(nameTextField),
+        };
+
+        var playlists = new List<string> { "All Songs" };
+        if (Directory.Exists(Globals.MuseDirectory))
+        {
+            var subDirs = Directory.GetDirectories(Globals.MuseDirectory)
+                .Select(Path.GetFileName)
+                .Where(x => x != null)
+                .Select(x => x!)
+                .ToList();
+            playlists.AddRange(subDirs);
+        }
+
+        var playlistComboBox = new ComboBox()
+        {
+            X = 1,
+            Y = Pos.Bottom(playlistLabel),
+            Width = Dim.Fill()! - 5,
+            Height = 4,
+            Source = new ListWrapper<string>(new ObservableCollection<string>(playlists))
+        };
+        playlistComboBox.SelectedItem = 0;
+
+        var progressBar = new ProgressBar()
+        {
+            X = 1,
+            Y = Pos.Bottom(playlistComboBox) + 1,
+            Width = Dim.Fill()! - 5,
+            Height = 1,
             Visible = false
         };
 
@@ -207,7 +238,7 @@ public class MenuBarView : MenuBarv2
         {
             Title = "Downloaded successfully!",
             X = Pos.Center(),
-            Y = Pos.Bottom(nameTextField) + 1,
+            Y = Pos.Bottom(progressBar) + 1,
             Visible = false,
         };
 
@@ -215,7 +246,7 @@ public class MenuBarView : MenuBarv2
         {
             Title = "Download",
             Width = Dim.Percent(50),
-            Height = Dim.Percent(50),
+            Height = Dim.Percent(60),
         };
 
         var downloadButton = new Button()
@@ -228,14 +259,37 @@ public class MenuBarView : MenuBarv2
         {
             // Download
             e.Handled = true;
+            
+            // Validation
+            if (string.IsNullOrWhiteSpace(urlTextField.Text.ToString()))
+            {
+                MessageBox.ErrorQuery("Error", "URL cannot be empty", "Ok");
+                return;
+            }
+
             // Preparation 
             textLabelSuccess.Visible = false;
-            spinnerView.Visible = true;
-            spinnerView.AutoSpin = true;
-            var url = urlTextField.Text;
-            var songName = nameTextField.Text;
+            progressBar.Visible = true;
+            progressBar.Fraction = 0;
+            
+            var url = urlTextField.Text.ToString();
+            var songName = nameTextField.Text.ToString();
+            var relativePath = playlistComboBox.SelectedItem == 0 ? "" : playlists[playlistComboBox.SelectedItem];
 
-            var result = await youtubeDownloadService.DownloadAsync(url, songName);
+            var progress = new Progress<double>(p =>
+            {
+                Application.Invoke(() =>
+                {
+                    progressBar.Fraction = (float)p;
+                });
+            });
+
+            downloadButton.Enabled = false;
+
+            var result = await youtubeDownloadService.DownloadAsync(url, songName, relativePath, progress);
+
+            downloadButton.Enabled = true;
+            progressBar.Visible = false;
 
             if (result.IsFailure)
             {
@@ -246,8 +300,10 @@ public class MenuBarView : MenuBarv2
                 urlTextField.Text = string.Empty;
                 nameTextField.Text = string.Empty;
                 textLabelSuccess.Visible = true;
-                spinnerView.Visible = false;
-                spinnerView.AutoSpin = false;
+                
+                // Refresh playlists if new folder created (though here we only select existing)
+                // Trigger playlist reload if we downloaded to current folder
+                Application.Invoke(() => uiEventBus.Publish(new RefreshPlaylistsRequested()));
             }
 
         };
@@ -265,7 +321,9 @@ public class MenuBarView : MenuBarv2
         dialog.Add(urlTextField);
         dialog.Add(nameLabel);
         dialog.Add(nameTextField);
-        dialog.Add(spinnerView);
+        dialog.Add(playlistLabel);
+        dialog.Add(playlistComboBox);
+        dialog.Add(progressBar);
         dialog.Add(textLabelSuccess);
         dialog.AddButton(downloadButton);
         dialog.AddButton(exitButton);
