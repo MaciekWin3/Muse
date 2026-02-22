@@ -17,9 +17,9 @@ public static class MusicListHelper
 
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var file in directory.GetFiles("*.mp*", searchOption).OrderBy(f => f.Name))
+        foreach (var file in directory.GetFiles("*.mp*", searchOption).OrderBy(f => f.Name).ThenBy(f => f.FullName))
         {
-            if (seenPaths.Add(file.Name))
+            if (seenPaths.Add(file.FullName))
             {
                 yield return file;
             }
