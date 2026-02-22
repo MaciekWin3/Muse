@@ -14,6 +14,7 @@ public sealed class MusicListView : FrameView
     private readonly IUiEventBus uiEventBus;
     private readonly ListView listView;
     private readonly IPlayerService playerService;
+    private List<FileInfo> songs = [];
 
     public MusicListView(IUiEventBus uiEventBus, IPlayerService playerService, Pos x, Pos y, int bottomReserved)
     {
@@ -46,8 +47,9 @@ public sealed class MusicListView : FrameView
         {
             Application.Invoke(() =>
             {
+                songs = [.. msg.Songs];
                 listView.SetSource(
-                    new ObservableCollection<string>(msg.Names)
+                    new ObservableCollection<string>(songs.Select(s => s.Name))
                 );
             });
         });
@@ -71,23 +73,21 @@ public sealed class MusicListView : FrameView
             listView.SelectedItem = newIndex;
 
             var songName = listView.Source.ToList()[listView.SelectedItem] as string;
+            var song = songs.FirstOrDefault(s => s.Name == songName);
 
-            switch (songName)
+            if (song is null)
             {
-                case null:
-                case "":
-                    MessageBox.ErrorQuery("Error", "Unable to obtain song name.", "Ok");
-                    break;
-                default:
-                    var loadResult = playerService.Load(Path.Combine(Globals.MuseDirectory, songName));
-                    if (!loadResult.Success)
-                    {
-                        MessageBox.ErrorQuery("Error", $"Cannot load file: {loadResult.Error}", "Ok");
-                        break;
-                    }
-                    playerService.Play();
-                    break;
+                MessageBox.ErrorQuery("Error", "Unable to obtain song info.", "Ok");
+                return;
             }
+
+            var loadResult = playerService.Load(song.FullName);
+            if (!loadResult.Success)
+            {
+                MessageBox.ErrorQuery("Error", $"Cannot load file: {loadResult.Error}", "Ok");
+                return;
+            }
+            playerService.Play();
         });
 
     }
@@ -98,7 +98,11 @@ public sealed class MusicListView : FrameView
         {
             if (e.Value is string songName)
             {
-                uiEventBus.Publish(new SongSelected(Path.Combine(Globals.MuseDirectory, songName)));
+                var song = songs.FirstOrDefault(s => s.Name == songName);
+                if (song != null)
+                {
+                    uiEventBus.Publish(new SongSelected(song.FullName));
+                }
             }
         };
     }
