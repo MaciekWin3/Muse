@@ -72,14 +72,13 @@ public sealed class MusicListView : FrameView
 
             listView.SelectedItem = newIndex;
 
-            var songName = listView.Source.ToList()[listView.SelectedItem] as string;
-            var song = songs.FirstOrDefault(s => s.Name == songName);
-
-            if (song is null)
+            if (newIndex < 0 || newIndex >= songs.Count)
             {
                 MessageBox.ErrorQuery("Error", "Unable to obtain song info.", "Ok");
                 return;
             }
+
+            var song = songs[newIndex];
 
             var loadResult = playerService.Load(song.FullName);
             if (!loadResult.Success)
@@ -96,13 +95,10 @@ public sealed class MusicListView : FrameView
     {
         listView.OpenSelectedItem += (sender, e) =>
         {
-            if (e.Value is string songName)
+            int index = e.Item;
+            if (index >= 0 && index < songs.Count)
             {
-                var song = songs.FirstOrDefault(s => s.Name == songName);
-                if (song != null)
-                {
-                    uiEventBus.Publish(new SongSelected(song.FullName));
-                }
+                uiEventBus.Publish(new SongSelected(songs[index].FullName));
             }
         };
     }
