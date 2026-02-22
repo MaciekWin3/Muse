@@ -1,4 +1,4 @@
-﻿using Muse.Player;
+using Muse.Player;
 using Muse.UI.Bus;
 using Muse.Utils;
 using System.Collections.ObjectModel;
@@ -79,7 +79,12 @@ public sealed class MusicListView : FrameView
                     MessageBox.ErrorQuery("Error", "Unable to obtain song name.", "Ok");
                     break;
                 default:
-                    playerService.Load(Path.Combine(Globals.MuseDirectory, songName));
+                    var loadResult = playerService.Load(Path.Combine(Globals.MuseDirectory, songName));
+                    if (!loadResult.Success)
+                    {
+                        MessageBox.ErrorQuery("Error", $"Cannot load file: {loadResult.Error}", "Ok");
+                        break;
+                    }
                     playerService.Play();
                     break;
             }

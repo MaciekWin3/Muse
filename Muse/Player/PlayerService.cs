@@ -18,14 +18,21 @@ public class PlayerService : IPlayerService, IDisposable
 
     public Result Load(string fileName)
     {
-        if (audioFileReader is not null)
+        try
         {
-            audioFileReader?.Dispose();
-            waveOutDevice.Stop();
+            if (audioFileReader is not null)
+            {
+                audioFileReader.Dispose();
+                waveOutDevice.Stop();
+            }
+            audioFileReader = new AudioFileReader(fileName);
+            waveOutDevice.Init(audioFileReader);
+            return Result.Ok();
         }
-        audioFileReader = new AudioFileReader(fileName);
-        waveOutDevice.Init(audioFileReader);
-        return Result.Ok();
+        catch (Exception ex)
+        {
+            return Result.Fail(ex.Message);
+        }
     }
 
     public Result Play()
