@@ -18,10 +18,30 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         {
             var video = await youtubeClient.Videos.GetAsync(link);
 
-            string targetDirectory = string.IsNullOrWhiteSpace(relativePath) 
-                ? Globals.MuseDirectory 
-                : Path.Combine(Globals.MuseDirectory, relativePath);
+            string baseDirectory = Path.GetFullPath(Globals.MuseDirectory);
+            string targetDirectory;
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                targetDirectory = baseDirectory;
+            }
+            else
+            {
+                string combinedPath = Path.Combine(baseDirectory, relativePath);
+                string fullTargetDirectory = Path.GetFullPath(combinedPath);
 
+                // Ensure the target directory stays within the base directory to prevent path traversal
+                string baseDirWithSeparator = baseDirectory.EndsWith(Path.DirectorySeparatorChar)
+                    ? baseDirectory
+                    : baseDirectory + Path.DirectorySeparatorChar;
+
+                if (!fullTargetDirectory.StartsWith(baseDirWithSeparator, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(fullTargetDirectory, baseDirectory, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException("Invalid relative path.");
+                }
+
+                targetDirectory = fullTargetDirectory;
+            }
             if (!Directory.Exists(targetDirectory))
             {
                 Directory.CreateDirectory(targetDirectory);
