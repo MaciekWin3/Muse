@@ -1,4 +1,4 @@
-﻿using Muse.Utils;
+using Muse.Utils;
 using Muse.YouTube;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
@@ -12,15 +12,19 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         youtubeClient = new YoutubeClient();
     }
 
-    public async Task<Result> DownloadAsync(string link, string? name = null)
+    public async Task<Result> DownloadAsync(string link, string? name = null, string relativePath = "", IProgress<double>? progress = null)
     {
         try
         {
             var video = await youtubeClient.Videos.GetAsync(link);
 
-            if (!Directory.Exists(Globals.MuseDirectory))
+            string targetDirectory = string.IsNullOrWhiteSpace(relativePath) 
+                ? Globals.MuseDirectory 
+                : Path.Combine(Globals.MuseDirectory, relativePath);
+
+            if (!Directory.Exists(targetDirectory))
             {
-                Directory.CreateDirectory(Globals.MuseDirectory);
+                Directory.CreateDirectory(targetDirectory);
             }
 
             var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(link);
@@ -39,9 +43,10 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             fileName = SanitizeFileName(fileName);
             string extension = audioStream.Container.Name;
 
-            string outputPath = Path.Combine(Globals.MuseDirectory, $"{fileName}.{extension}");
+            string outputPath = Path.Combine(targetDirectory, $"{fileName}.{extension}");
+            outputPath = GetUniqueFilePath(outputPath);
 
-            await youtubeClient.Videos.Streams.DownloadAsync(audioStream, outputPath);
+            await youtubeClient.Videos.Streams.DownloadAsync(audioStream, outputPath, progress);
 
             return Result.Ok();
         }
@@ -58,5 +63,27 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             fileName = fileName.Replace(c, '_');
         }
         return fileName;
+    }
+
+    private static string GetUniqueFilePath(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            return filePath;
+        }
+
+        string directory = Path.GetDirectoryName(filePath)!;
+        string fileName = Path.GetFileNameWithoutExtension(filePath);
+        string extension = Path.GetExtension(filePath);
+
+        int count = 1;
+        string newFilePath;
+        do
+        {
+            newFilePath = Path.Combine(directory, $"{fileName} ({count}){extension}");
+            count++;
+        } while (File.Exists(newFilePath));
+
+        return newFilePath;
     }
 }
