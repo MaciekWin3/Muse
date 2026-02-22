@@ -5,6 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <NoWarn>NU1608</NoWarn>
 	<Authors>Maciej Winnik</Authors>
 	<Description>Terminal music player</Description>
 	<PackageVersion>0.1.0</PackageVersion>
