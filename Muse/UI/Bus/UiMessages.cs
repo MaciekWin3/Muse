@@ -13,6 +13,6 @@ namespace Muse.UI.Bus
     public sealed record ReloadPlaylist(string DirectoryPath);
     public sealed record ChangeSongIndexRequested(int Offset);
     public sealed record TrackProgress(string Name, int CurrentSeconds, int TotalSeconds);
-    public sealed record PlaylistUpdated(List<FileInfo> Songs);
+    public sealed record PlaylistUpdated(System.Collections.Generic.IReadOnlyList<FileInfo> Songs);
     public sealed record RefreshPlaylistsRequested();
 }
