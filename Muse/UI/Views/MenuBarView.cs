@@ -310,7 +310,7 @@ public class MenuBarView : MenuBarv2
 
             if (result.IsFailure)
             {
-                MessageBox.ErrorQuery("Error", result.Error, "Ok");
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", result.Error, "Ok"));
             }
             else
             {
@@ -332,7 +332,7 @@ public class MenuBarView : MenuBarv2
             Y = Pos.Percent(90),
         };
 
-        exitButton.Accepting += (s, e) => dialog.Running = false;
+        exitButton.Accepting += (s, e) => Application.RequestStop(dialog);
 
         dialog.Add(urlLabel);
         dialog.Add(urlTextField);
