@@ -4,6 +4,7 @@ using Muse.UI.Bus;
 using Muse.UI.Views;
 using Muse.YouTube;
 using Terminal.Gui.App;
+using Terminal.Gui.Configuration;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
@@ -30,6 +31,14 @@ public class MuseApp : Toplevel
         this.uiEventBus = uiEventBus;
         Add(mainWindow, statusBarView, menuBarView);
         Initialized += (s, e) => Application.KeyDown += OnGlobalKeyDown;
+
+        uiEventBus.Subscribe<ChangeThemeRequested>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                ThemeManager.Theme = msg.ThemeName;
+            });
+        });
     }
 
     private void OnGlobalKeyDown(object? sender, Key key)
