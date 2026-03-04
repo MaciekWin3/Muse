@@ -2,12 +2,32 @@
 
 namespace Muse.Player
 {
-    public struct SongInfo(AudioFileReader audioFileReader)
+    public struct SongInfo
     {
-        public readonly string Name => Path.GetFileName(audioFileReader.FileName);
-        public readonly int TotalTimeInSeconds => (int)audioFileReader.TotalTime.TotalSeconds;
+        public string Name { get; }
+        public int TotalTimeInSeconds { get; }
+        public int CurrentTime { get; }
 
-        // TODO: Prevent when audioFileReader is null
-        public readonly int CurrentTime => (audioFileReader.CurrentTime.Hours * 60 * 60) + (audioFileReader.CurrentTime.Minutes * 60) + audioFileReader.CurrentTime.Seconds;
+        public SongInfo(WaveStream waveStream)
+        {
+            // Try to get filename if it's a reader that has it
+            string path = "";
+            if (waveStream is AudioFileReader afr) path = afr.FileName;
+            else if (waveStream is MediaFoundationReader mfr) {
+                // MediaFoundationReader doesn't expose filename directly in some versions
+                // but we can try to get it via reflection if needed, or just skip
+            }
+            
+            Name = string.IsNullOrEmpty(path) ? "Unknown" : Path.GetFileName(path);
+            TotalTimeInSeconds = (int)waveStream.TotalTime.TotalSeconds;
+            CurrentTime = (int)waveStream.CurrentTime.TotalSeconds;
+        }
+        
+        public SongInfo(WaveStream waveStream, string fileName)
+        {
+            Name = Path.GetFileName(fileName);
+            TotalTimeInSeconds = (int)waveStream.TotalTime.TotalSeconds;
+            CurrentTime = (int)waveStream.CurrentTime.TotalSeconds;
+        }
     }
 }
