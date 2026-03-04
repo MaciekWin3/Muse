@@ -24,6 +24,13 @@ Muse is a cross-platform Terminal User Interface (TUI) music player built with .
   - Use file-scoped namespaces.
   - Ensure all new services are interfaced (e.g., `IPlayerService` for `PlayerService`).
 
+## Workflow & Git Standards
+- **Clean State Check:** Before starting work on a new feature, always verify that there are no uncommitted changes in the current branch. Use `git status` to confirm.
+- **Interruption Policy:** If there are existing uncommitted changes, **stop and notify the user**. Do not proceed with new feature development until the workspace is clean or the user provides explicit instructions on how to handle the changes.
+- **Feature Branching:** Always create a new descriptive branch for each feature or bug fix before applying changes.
+- **Atomic Commits:** When the work is finished, use an atomic commit approach (small, focused commits that each perform a single logical task) to prepare the Pull Request. Ensure each commit message follows the project's established style.
+- **PR Readiness:** Validation (testing and linting) must be completed before proposing or creating a PR.
+
 ## Development Guidelines for Gemini
 - **Contextual Awareness:** Always respect the existing architecture, especially the `Terminal.Gui` v2 patterns and the custom UI event bus.
 - **Service Registration:** When adding new services or views, ensure they are registered in `Program.cs` or via `ServiceCollectionExtensions`.
