@@ -6,6 +6,7 @@ using Muse.UI.Bus;
 using Muse.Utils;
 using Muse.YouTube;
 using Terminal.Gui.App;
+using Terminal.Gui.Configuration;
 
 using var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
@@ -44,11 +45,13 @@ catch (Exception ex)
 void InitApp()
 {
     var museApp = services.GetRequiredService<MuseApp>();
+    
+    ConfigurationManager.Enable(ConfigLocations.All);
     Application.Init();
+    
     Application.Run(museApp);
     Application.Shutdown();
 }
-
 static void HandleMuseEnvironmentVariableMissing()
 {
     Console.ForegroundColor = ConsoleColor.Red;
