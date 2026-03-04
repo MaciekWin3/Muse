@@ -49,6 +49,7 @@ void InitApp()
     ConfigurationManager.Enable(ConfigLocations.All);
     ThemeManager.Theme = "Anders";
     Application.Init();
+    ConfigurationManager.Apply();
     
     Application.Run(museApp);
     Application.Shutdown();
