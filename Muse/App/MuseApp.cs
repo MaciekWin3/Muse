@@ -37,6 +37,7 @@ public class MuseApp : Toplevel
             Application.Invoke(() =>
             {
                 ThemeManager.Theme = msg.ThemeName;
+                ConfigurationManager.Apply();
             });
         });
     }
