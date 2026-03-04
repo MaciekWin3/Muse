@@ -39,6 +39,13 @@ public class MenuBarView : MenuBarv2
                         new("Quit", "Quit application", () => Application.RequestStop()),
                     }),
                     new("Playlists", GetPlaylistMenuItems()),
+                    new("Theme", new MenuItemv2[]
+                    {
+                        new("Base", "Base theme", () => uiEventBus.Publish(new ChangeThemeRequested("Base"))),
+                        new("Dark", "Dark theme", () => uiEventBus.Publish(new ChangeThemeRequested("Dark"))),
+                        new("Light", "Light theme", () => uiEventBus.Publish(new ChangeThemeRequested("Light"))),
+                        new("Classic", "Classic theme", () => uiEventBus.Publish(new ChangeThemeRequested("Classic")))
+                    }),
                     new("Help", new MenuItemv2[]
                     {
                         new("About", "About Muse", () => ShowAsciiArt()),
