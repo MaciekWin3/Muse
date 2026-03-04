@@ -89,6 +89,33 @@ public sealed class MusicListView : FrameView
             playerService.Play();
         });
 
+        uiEventBus.Subscribe<DeleteSongRequested>(_ =>
+        {
+            int selectedIndex = listView.SelectedItem;
+            if (selectedIndex >= 0 && selectedIndex < songs.Count)
+            {
+                var song = songs[selectedIndex];
+                var result = MessageBox.Query("Delete", $"Are you sure you want to delete {song.Name}?", "Yes", "No");
+                if (result == 0) // Yes
+                {
+                    try
+                    {
+                        if (File.Exists(song.FullName))
+                        {
+                            // If it's currently playing, we should probably stop it
+                            playerService.Stop();
+                            File.Delete(song.FullName);
+                            uiEventBus.Publish(new RefreshPlaylistsRequested());
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.ErrorQuery("Error", $"Failed to delete file: {ex.Message}", "Ok");
+                    }
+                }
+            }
+        });
+
     }
 
     private void RegisterEvents()
