@@ -16,12 +16,14 @@ public class StatusBarView : StatusBar
         AlignmentModes = AlignmentModes.IgnoreFirstOrLast;
         CanFocus = false;
 
-        Add(new Shortcut()
-        {
-            Title = "Quit",
-            Key = Application.Keyboard.QuitKey,
-        });
+        AddShortcuts();
+        RegisterBusHandlers();
+        
+        UpdateShortcutsVisibility(AppMode.Shortcuts);
+    }
 
+    private void AddShortcuts()
+    {
         Add(new Shortcut()
         {
             Title = "Mute",
@@ -59,20 +61,69 @@ public class StatusBarView : StatusBar
 
         Add(new Shortcut()
         {
-            Title = $"OS: {Environment.OSVersion}"
+            Title = "Delete",
+            Key = Key.D,
+            Action = () => uiEventBus.Publish(new DeleteSongRequested())
         });
 
-        RegisterBusHandlers();
+        Add(new Shortcut()
+        {
+            Title = "Switch Mode",
+            Key = Key.Tab,
+            Action = () => {
+                var currentTitle = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.StartsWith("Mode:"))?.Title ?? "";
+                var nextMode = currentTitle.Contains("Search") ? AppMode.Shortcuts : AppMode.Search;
+                uiEventBus.Publish(new ChangeModeRequested(nextMode));
+            }
+        });
+
+        Add(new Shortcut()
+        {
+            Title = "Mode: Shortcuts",
+        });
+
+        Add(new Shortcut()
+        {
+            Title = $"{Environment.OSVersion}"
+        });
+    }
+
+    private void UpdateShortcutsVisibility(AppMode mode)
+    {
+        var playerShortcuts = new[] { "Mute", "Unmute", "Play/Pause", "Prev", "Next", "Delete" };
+        foreach (var shortcut in SubViews.OfType<Shortcut>())
+        {
+            if (playerShortcuts.Any(s => shortcut.Title.StartsWith(s, StringComparison.OrdinalIgnoreCase)))
+            {
+                shortcut.Visible = mode == AppMode.Shortcuts;
+            }
+        }
     }
 
     private void RegisterBusHandlers()
     {
+        uiEventBus.Subscribe<ChangeModeRequested>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                var modeShortcut = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.StartsWith("Mode:"));
+                if (modeShortcut != null)
+                {
+                    modeShortcut.Title = $"Mode: {msg.NewMode}";
+                }
+                UpdateShortcutsVisibility(msg.NewMode);
+            });
+        });
+
         uiEventBus.Subscribe<VolumeChanged>(msg =>
         {
             Application.Invoke(() =>
             {
-                var muteShortcut = SubViews.FirstOrDefault(s => s.Title.Contains("Mute", StringComparison.OrdinalIgnoreCase));
-                muteShortcut?.Title = msg.Volume == 0f ? "Unmute" : "Mute";
+                var muteShortcut = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.Contains("Mute", StringComparison.OrdinalIgnoreCase));
+                if (muteShortcut != null)
+                {
+                    muteShortcut.Title = msg.Volume == 0f ? "Unmute" : "Mute";
+                }
             });
         });
     }
