@@ -30,34 +30,44 @@ public class MenuBarView : MenuBarv2
 
     private void RebuildMenu()
     {
-            Menus =
-                [
-                    new("File", new MenuItemv2[]
-                    {
-                        new("Open", "Open music folder", () => OpenFolder()),
-                        new("Quit", "Quit application", () => Application.RequestStop()),
-                    }),
-                    new("Playlists", GetPlaylistMenuItems()),
-                    new("Theme", new MenuItemv2[]
-                    {
-                        new("Base", "Base theme", () => uiEventBus.Publish(new ChangeThemeRequested("Base"))),
-                        new("Dark", "Dark theme", () => uiEventBus.Publish(new ChangeThemeRequested("Dark"))),
-                        new("Light", "Light theme", () => uiEventBus.Publish(new ChangeThemeRequested("Light"))),
-                        new("Classic", "Classic theme", () => uiEventBus.Publish(new ChangeThemeRequested("Classic")))
-                    }),
-                    new("Help", new MenuItemv2[]
-                    {
-                        new("About", "About Muse", () => ShowAsciiArt()),
-                        new("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
-                        new("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
-                    }),
-                    new("Download", new MenuItemv2[]
-                    {
-                        new("From YT", "Download file from YT", () => ShowDownloadDialog())
-                    })
-                ];
-        }        
-            private MenuItemv2[] GetPlaylistMenuItems()
+        Menus =
+        [
+            new("File", new MenuItemv2[]
+            {
+                new("Open", "Open music folder", () => OpenFolder()),
+                new("Quit", "Quit application", () => Application.RequestStop()),
+            }),
+            new("Options", new MenuItemv2[]
+            {
+                new("Playlists", "Choose playlist", new Menuv2(GetPlaylistMenuItems())),
+                new("Theme", "Change color theme", new Menuv2(GetThemeMenuItems())),
+                new("Download", "Download from YouTube", () => ShowDownloadDialog())
+            }),
+            new("Help", new MenuItemv2[]
+            {
+                new("About", "About Muse", () => ShowAsciiArt()),
+                new("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
+                new("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
+            })
+        ];
+    }
+
+    private MenuItemv2[] GetThemeMenuItems()
+    {
+        return new MenuItemv2[]
+        {
+            new("Default", "Default theme", () => uiEventBus.Publish(new ChangeThemeRequested("Default"))),
+            new("Dark", "Dark theme", () => uiEventBus.Publish(new ChangeThemeRequested("Dark"))),
+            new("Light", "Light theme", () => uiEventBus.Publish(new ChangeThemeRequested("Light"))),
+            new("TurboPascal 5", "TurboPascal 5 theme", () => uiEventBus.Publish(new ChangeThemeRequested("TurboPascal 5"))),
+            new("Anders", "Anders theme", () => uiEventBus.Publish(new ChangeThemeRequested("Anders"))),
+            new("Amber Phosphor", "Amber Phosphor theme", () => uiEventBus.Publish(new ChangeThemeRequested("Amber Phosphor"))),
+            new("Green Phosphor", "Green Phosphor theme", () => uiEventBus.Publish(new ChangeThemeRequested("Green Phosphor"))),
+            new("8-Bit", "8-Bit theme", () => uiEventBus.Publish(new ChangeThemeRequested("8-Bit")))
+        };
+    }
+
+    private MenuItemv2[] GetPlaylistMenuItems()
             {
                 var items = new List<MenuItemv2>
                 {
