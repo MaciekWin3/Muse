@@ -15,4 +15,5 @@ namespace Muse.UI.Bus
     public sealed record TrackProgress(string Name, int CurrentSeconds, int TotalSeconds);
     public sealed record PlaylistUpdated(System.Collections.Generic.IReadOnlyList<FileInfo> Songs);
     public sealed record RefreshPlaylistsRequested();
+    public sealed record ChangeThemeRequested(string ThemeName);
 }
