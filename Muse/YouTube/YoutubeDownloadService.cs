@@ -1,6 +1,7 @@
 using Muse.Utils;
 using Muse.YouTube;
 using YoutubeExplode;
+using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
 
 public class YoutubeDownloadService : IYoutubeDownloadService
@@ -16,63 +17,108 @@ public class YoutubeDownloadService : IYoutubeDownloadService
     {
         try
         {
-            var video = await youtubeClient.Videos.GetAsync(link);
+            if (string.IsNullOrWhiteSpace(Globals.MuseDirectory))
+            {
+                return Result.Fail("MUSE_DIRECTORY is not set.");
+            }
+
+            var videoId = VideoId.TryParse(link);
+            if (videoId == null)
+            {
+                return Result.Fail($"Failed to parse Video ID from link: {link}");
+            }
+
+            IVideo video;
+            try
+            {
+                video = await youtubeClient.Videos.GetAsync(videoId.Value);
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail($"Failed to retrieve video metadata for {videoId.Value}: {ex.Message}");
+            }
 
             string baseDirectory = Path.GetFullPath(Globals.MuseDirectory);
+            string baseDirWithSeparator = baseDirectory.EndsWith(Path.DirectorySeparatorChar)
+                ? baseDirectory
+                : baseDirectory + Path.DirectorySeparatorChar;
+
             string targetDirectory;
-            if (string.IsNullOrWhiteSpace(relativePath))
+            try
             {
-                targetDirectory = baseDirectory;
-            }
-            else
-            {
-                string combinedPath = Path.Combine(baseDirectory, relativePath);
-                string fullTargetDirectory = Path.GetFullPath(combinedPath);
-
-                // Ensure the target directory stays within the base directory to prevent path traversal
-                string baseDirWithSeparator = baseDirectory.EndsWith(Path.DirectorySeparatorChar)
-                    ? baseDirectory
-                    : baseDirectory + Path.DirectorySeparatorChar;
-
-                if (!fullTargetDirectory.StartsWith(baseDirWithSeparator, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(fullTargetDirectory, baseDirectory, StringComparison.OrdinalIgnoreCase))
+                if (string.IsNullOrWhiteSpace(relativePath))
                 {
-                    throw new ArgumentException("Invalid relative path.");
+                    targetDirectory = baseDirectory;
                 }
+                else
+                {
+                    string combinedPath = Path.Combine(baseDirectory, relativePath);
+                    string fullTargetDirectory = Path.GetFullPath(combinedPath);
 
-                targetDirectory = fullTargetDirectory;
+                    // Ensure the target directory stays within the base directory
+                    bool isSubDir = fullTargetDirectory.StartsWith(baseDirWithSeparator, StringComparison.OrdinalIgnoreCase);
+                    bool isBaseDir = string.Equals(fullTargetDirectory, baseDirectory, StringComparison.OrdinalIgnoreCase);
+
+                    if (!isSubDir && !isBaseDir)
+                    {
+                        throw new ArgumentException($"Invalid relative path: {relativePath}. Target {fullTargetDirectory} is outside base {baseDirectory}");
+                    }
+
+                    targetDirectory = fullTargetDirectory;
+                }
+                if (!Directory.Exists(targetDirectory))
+                {
+                    Directory.CreateDirectory(targetDirectory);
+                }
             }
-            if (!Directory.Exists(targetDirectory))
+            catch (Exception ex)
             {
-                Directory.CreateDirectory(targetDirectory);
+                return Result.Fail($"Failed to prepare output directory: {ex.Message}");
             }
 
-            var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(link);
+            StreamManifest manifest;
+            try
+            {
+                manifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoId.Value);
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail($"Failed to retrieve stream manifest for {videoId.Value}: {ex.Message}");
+            }
 
             var audioStream = manifest
                 .GetAudioOnlyStreams()
-                .Where(s => s.Container == Container.Mp4)
-                .GetWithHighestBitrate();
+                .OrderByDescending(s => s.Container == Container.Mp4)
+                .ThenByDescending(s => s.AudioCodec.Equals("aac", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(s => s.Bitrate)
+                .FirstOrDefault();
 
             if (audioStream is null)
             {
                 return Result.Fail("No audio-only stream found for this video.");
             }
 
-            string fileName = name ?? video.Title;
+            string fileName = string.IsNullOrWhiteSpace(name) ? video.Title : name;
             fileName = SanitizeFileName(fileName);
             string extension = audioStream.Container.Name;
 
             string outputPath = Path.Combine(targetDirectory, $"{fileName}.{extension}");
             outputPath = GetUniqueFilePath(outputPath);
 
-            await youtubeClient.Videos.Streams.DownloadAsync(audioStream, outputPath, progress);
+            try
+            {
+                await youtubeClient.Videos.Streams.DownloadAsync(audioStream, outputPath, progress);
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail($"Failed to download audio stream to {outputPath}: {ex.Message}");
+            }
 
             return Result.Ok();
         }
         catch (Exception ex)
         {
-            return Result.Fail(ex.Message);
+            return Result.Fail($"{ex.GetType().Name}: {ex.Message}");
         }
     }
 
