@@ -44,6 +44,11 @@ public class MuseApp : Toplevel
 
     private void OnGlobalKeyDown(object? sender, Key key)
     {
+        if (Application.Top is not MuseApp)
+        {
+            return;
+        }
+
         if (key == Key.P)
         {
             uiEventBus.Publish(new TogglePlayRequested());
