@@ -4,6 +4,7 @@ using Muse.YouTube;
 using System.Collections.ObjectModel;
 using System.Text;
 using Terminal.Gui.App;
+using Terminal.Gui.Configuration;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -188,7 +189,7 @@ public class MenuBarView : MenuBarv2
     {
         var urlLabel = new Label()
         {
-            Title = "YouTube URL: ",
+            Text = "YouTube URL: ",
             X = 1,
             Y = 1,
         };
@@ -202,7 +203,7 @@ public class MenuBarView : MenuBarv2
 
         var nameLabel = new Label()
         {
-            Title = "Song name: ",
+            Text = "Song name: ",
             X = 1,
             Y = Pos.Bottom(urlTextField),
         };
@@ -216,7 +217,7 @@ public class MenuBarView : MenuBarv2
 
         var playlistLabel = new Label()
         {
-            Title = "Playlist: ",
+            Text = "Playlist: ",
             X = 1,
             Y = Pos.Bottom(nameTextField),
         };
@@ -242,20 +243,20 @@ public class MenuBarView : MenuBarv2
         };
         playlistComboBox.SelectedItem = 0;
 
-        var progressBar = new ProgressBar()
+        var progressLabel = new Label()
         {
-            X = 1,
+            Text = "Ready",
+            X = Pos.Center(),
             Y = Pos.Bottom(playlistComboBox) + 1,
             Width = Dim.Fill()! - 5,
-            Height = 1,
             Visible = false
         };
 
         var textLabelSuccess = new Label()
         {
-            Title = "Downloaded successfully!",
+            Text = "Downloaded successfully!",
             X = Pos.Center(),
-            Y = Pos.Bottom(progressBar) + 1,
+            Y = Pos.Bottom(progressLabel) + 1,
             Visible = false,
         };
 
@@ -263,7 +264,7 @@ public class MenuBarView : MenuBarv2
         {
             Title = "Download",
             Width = Dim.Percent(50),
-            Height = Dim.Percent(60),
+            Height = Dim.Percent(70),
         };
 
         var downloadButton = new Button()
@@ -278,26 +279,34 @@ public class MenuBarView : MenuBarv2
             e.Handled = true;
             
             // Validation
-            if (string.IsNullOrWhiteSpace(urlTextField.Text.ToString()))
+            if (string.IsNullOrWhiteSpace(urlTextField.Text?.ToString()))
             {
-                MessageBox.ErrorQuery("Error", "URL cannot be empty", "Ok");
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", "URL cannot be empty", "Ok"));
                 return;
             }
 
             // Preparation 
             textLabelSuccess.Visible = false;
-            progressBar.Visible = true;
-            progressBar.Fraction = 0;
+            progressLabel.Visible = true;
+            progressLabel.Text = "Starting...";
             
-            var url = urlTextField.Text.ToString();
-            var songName = nameTextField.Text.ToString();
-            var relativePath = playlistComboBox.SelectedItem == 0 ? "" : playlists[playlistComboBox.SelectedItem];
+            var url = urlTextField.Text?.ToString().Trim() ?? string.Empty;
+            var songName = nameTextField.Text?.ToString().Trim() ?? string.Empty;
+            
+            string relativePath = "";
+            if (playlistComboBox.SelectedItem >= 0 && playlistComboBox.SelectedItem < playlists.Count)
+            {
+                relativePath = playlistComboBox.SelectedItem == 0 ? "" : playlists[playlistComboBox.SelectedItem];
+            }
 
             var progress = new Progress<double>(p =>
             {
                 Application.Invoke(() =>
                 {
-                    progressBar.Fraction = (float)p;
+                    int percentage = (int)(p * 100);
+                    int bars = percentage / 10;
+                    string barStr = new string('#', bars) + new string(' ', 10 - bars);
+                    progressLabel.Text = $"[{barStr}] {percentage}%";
                 });
             });
 
@@ -306,10 +315,10 @@ public class MenuBarView : MenuBarv2
             var result = await youtubeDownloadService.DownloadAsync(url, songName, relativePath, progress);
 
             downloadButton.Enabled = true;
-            progressBar.Visible = false;
-
+            
             if (result.IsFailure)
             {
+                progressLabel.Visible = false;
                 Application.Invoke(() => MessageBox.ErrorQuery("Error", result.Error, "Ok"));
             }
             else
@@ -317,6 +326,7 @@ public class MenuBarView : MenuBarv2
                 urlTextField.Text = string.Empty;
                 nameTextField.Text = string.Empty;
                 textLabelSuccess.Visible = true;
+                progressLabel.Text = "[##########] 100%";
                 
                 // Refresh playlists if new folder created (though here we only select existing)
                 // Trigger playlist reload if we downloaded to current folder
@@ -328,8 +338,6 @@ public class MenuBarView : MenuBarv2
         var exitButton = new Button()
         {
             Title = "Exit",
-            X = Pos.Center(),
-            Y = Pos.Percent(90),
         };
 
         exitButton.Accepting += (s, e) => Application.RequestStop(dialog);
@@ -340,7 +348,7 @@ public class MenuBarView : MenuBarv2
         dialog.Add(nameTextField);
         dialog.Add(playlistLabel);
         dialog.Add(playlistComboBox);
-        dialog.Add(progressBar);
+        dialog.Add(progressLabel);
         dialog.Add(textLabelSuccess);
         dialog.AddButton(downloadButton);
         dialog.AddButton(exitButton);
