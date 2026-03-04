@@ -26,8 +26,10 @@ Muse is a cross-platform Terminal User Interface (TUI) music player built with .
 
 ## Workflow & Git Standards
 - **Clean State Check:** Before starting work on a new feature, always verify that there are no uncommitted changes in the current branch. Use `git status` to confirm.
+- **Remote Sync:** Before starting any work on a new branch, ensure it has the latest version from the remote (`git pull origin main`).
 - **Interruption Policy:** If there are existing uncommitted changes, **stop and notify the user**. Do not proceed with new feature development until the workspace is clean or the user provides explicit instructions on how to handle the changes.
 - **Feature Branching:** Always create a new descriptive branch for each feature or bug fix before applying changes.
+- **Change Confirmation:** Only commit changes after they have been explicitly confirmed by the user.
 - **Atomic Commits:** When the work is finished, use an atomic commit approach (small, focused commits that each perform a single logical task) to prepare the Pull Request. Ensure each commit message follows the project's established style.
 - **PR Readiness:** Validation (testing and linting) must be completed before proposing or creating a PR.
 
