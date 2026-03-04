@@ -16,4 +16,13 @@ namespace Muse.UI.Bus
     public sealed record PlaylistUpdated(System.Collections.Generic.IReadOnlyList<FileInfo> Songs);
     public sealed record RefreshPlaylistsRequested();
     public sealed record ChangeThemeRequested(string ThemeName);
+
+    public enum AppMode
+    {
+        Search,
+        Shortcuts
+    }
+
+    public sealed record ChangeModeRequested(AppMode NewMode);
+    public sealed record DeleteSongRequested();
 }
