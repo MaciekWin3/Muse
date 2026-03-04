@@ -47,6 +47,7 @@ void InitApp()
     var museApp = services.GetRequiredService<MuseApp>();
     
     ConfigurationManager.Enable(ConfigLocations.All);
+    ThemeManager.Theme = "Anders";
     Application.Init();
     
     Application.Run(museApp);
