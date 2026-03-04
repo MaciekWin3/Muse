@@ -44,7 +44,7 @@ public class MuseApp : Toplevel
 
     private void OnGlobalKeyDown(object? sender, Key key)
     {
-        if (Application.Top is not MuseApp)
+        if (Application.Top is not MuseApp || Application.Top.MostFocused is TextField)
         {
             return;
         }
