@@ -18,6 +18,7 @@ public class MuseApp : Toplevel
     private readonly MenuBarView menuBarView;
     private readonly StatusBarView statusBarView;
     private readonly IUiEventBus uiEventBus;
+    private AppMode currentMode = AppMode.Shortcuts;
 
     public MuseApp(IPlayerService player, IYoutubeDownloadService youtubeDownloadService,
         MainWindowView mainWindow, MenuBarView menuBarView, StatusBarView statusBarView,
@@ -40,11 +41,30 @@ public class MuseApp : Toplevel
                 ConfigurationManager.Apply();
             });
         });
+
+        uiEventBus.Subscribe<ChangeModeRequested>(msg =>
+        {
+            currentMode = msg.NewMode;
+        });
     }
 
     private void OnGlobalKeyDown(object? sender, Key key)
     {
         if (Application.Top is not MuseApp || Application.Top.MostFocused is TextField)
+        {
+            return;
+        }
+
+        // Mode Toggling
+        if (key == Key.Tab)
+        {
+            currentMode = currentMode == AppMode.Search ? AppMode.Shortcuts : AppMode.Search;
+            uiEventBus.Publish(new ChangeModeRequested(currentMode));
+            key.Handled = true;
+            return;
+        }
+
+        if (currentMode != AppMode.Shortcuts)
         {
             return;
         }
@@ -62,6 +82,11 @@ public class MuseApp : Toplevel
         else if (key == Key.B)
         {
             uiEventBus.Publish(new PreviousSongRequested());
+            key.Handled = true;
+        }
+        else if (key == Key.D)
+        {
+            uiEventBus.Publish(new DeleteSongRequested());
             key.Handled = true;
         }
     }
