@@ -1,0 +1,99 @@
+name: Publish to NuGet
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Determine and Increment Version
+      id: versioning
+      run: |
+        # 1. Get version from Muse.csproj
+        CURRENT_VERSION=$(grep -oPm1 "(?<=<PackageVersion>)[^<]+" Muse.csproj)
+        echo "Version in project file: $CURRENT_VERSION"
+        
+        # 2. Get latest tag from Git
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        LATEST_VERSION=${LATEST_TAG#v}
+        echo "Latest published version: $LATEST_VERSION"
+        
+        # 3. Logic: If user manually bumped version in PR, use it. Otherwise, auto-increment patch.
+        if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+          echo "Manual bump detected. Using version: $CURRENT_VERSION"
+          FINAL_VERSION=$CURRENT_VERSION
+          SHOULD_COMMIT="false"
+        else
+          echo "No manual bump. Incrementing patch..."
+          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+          FINAL_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          SHOULD_COMMIT="true"
+        fi
+        
+        echo "final_version=$FINAL_VERSION" >> $GITHUB_OUTPUT
+        echo "should_commit=$SHOULD_COMMIT" >> $GITHUB_OUTPUT
+
+    - name: Apply Auto-Bump to File
+      if: steps.versioning.outputs.should_commit == 'true'
+      run: |
+        OLD_VERSION=$(grep -oPm1 "(?<=<PackageVersion>)[^<]+" Muse.csproj)
+        sed -i "s/<PackageVersion>$OLD_VERSION<\/PackageVersion>/<PackageVersion>${{ steps.versioning.outputs.final_version }}<\/PackageVersion>/" Muse.csproj
+
+    - name: Commit and Push Version Bump
+      if: steps.versioning.outputs.should_commit == 'true'
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add Muse.csproj
+        git commit -m "chore: auto-bump version to ${{ steps.versioning.outputs.final_version }} [skip ci]"
+        git push
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Pack
+      run: |
+        dotnet pack Muse.csproj \
+          --configuration Release \
+          --no-build \
+          --output ./nupkg
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.versioning.outputs.final_version }}
+        name: Release v${{ steps.versioning.outputs.final_version }}
+        draft: false
+        prerelease: false
+        files: ./nupkg/*.nupkg
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Publish to NuGet
+      run: |
+        dotnet nuget push ./nupkg/*.nupkg \
+          --api-key ${{ secrets.NUGET_API_KEY }} \
+          --source https://api.nuget.org/v3/index.json \
+          --skip-duplicate
