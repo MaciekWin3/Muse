@@ -26,8 +26,8 @@ jobs:
     - name: Determine and Increment Version
       id: versioning
       run: |
-        # 1. Get version from Muse.csproj
-        CURRENT_VERSION=$(grep -oPm1 "(?<=<PackageVersion>)[^<]+" Muse.csproj)
+        # 1. Get version from Muse/Muse.csproj
+        CURRENT_VERSION=$(grep -oPm1 "(?<=<PackageVersion>)[^<]+" Muse/Muse.csproj)
         echo "Version in project file: $CURRENT_VERSION"
         
         # 2. Get latest tag from Git
@@ -55,30 +55,30 @@ jobs:
     - name: Apply Auto-Bump to File
       if: steps.versioning.outputs.should_commit == 'true'
       run: |
-        OLD_VERSION=$(grep -oPm1 "(?<=<PackageVersion>)[^<]+" Muse.csproj)
-        sed -i "s/<PackageVersion>$OLD_VERSION<\/PackageVersion>/<PackageVersion>${{ steps.versioning.outputs.final_version }}<\/PackageVersion>/" Muse.csproj
+        OLD_VERSION=$(grep -oPm1 "(?<=<PackageVersion>)[^<]+" Muse/Muse.csproj)
+        sed -i "s/<PackageVersion>$OLD_VERSION<\/PackageVersion>/<PackageVersion>${{ steps.versioning.outputs.final_version }}<\/PackageVersion>/" Muse/Muse.csproj
 
     - name: Commit and Push Version Bump
       if: steps.versioning.outputs.should_commit == 'true'
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add Muse.csproj
+        git add Muse/Muse.csproj
         git commit -m "chore: auto-bump version to ${{ steps.versioning.outputs.final_version }} [skip ci]"
         git push
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore Muse/Muse.csproj
 
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build Muse/Muse.csproj --configuration Release --no-restore
 
     - name: Pack
       run: |
-        dotnet pack Muse.csproj \
+        dotnet pack Muse/Muse.csproj \
           --configuration Release \
           --no-build \
-          --output ./nupkg
+          --output Muse/nupkg
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
@@ -87,13 +87,14 @@ jobs:
         name: Release v${{ steps.versioning.outputs.final_version }}
         draft: false
         prerelease: false
-        files: ./nupkg/*.nupkg
+        files: Muse/nupkg/*.nupkg
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Publish to NuGet
       run: |
-        dotnet nuget push ./nupkg/*.nupkg \
+        dotnet nuget push Muse/nupkg/*.nupkg \
           --api-key ${{ secrets.NUGET_API_KEY }} \
           --source https://api.nuget.org/v3/index.json \
           --skip-duplicate
+
