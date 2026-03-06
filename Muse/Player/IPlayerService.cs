@@ -5,9 +5,10 @@ namespace Muse.Player;
 
 public interface IPlayerService
 {
+    public Track? CurrentTrack { get; }
     public string? CurrentFilePath { get; }
     public PlaybackState State { get; }
-    Result Load(string fileName);
+    Task<Result> Load(Track track);
     Result Play();
     Result Pause();
     Result Stop();
