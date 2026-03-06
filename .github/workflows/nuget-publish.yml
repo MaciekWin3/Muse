@@ -70,15 +70,12 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore Muse/Muse.csproj
 
-    - name: Build
-      run: dotnet build Muse/Muse.csproj --configuration Release --no-restore
-
     - name: Pack
       run: |
         dotnet pack Muse/Muse.csproj \
           --configuration Release \
-          --no-build \
-          --output Muse/nupkg
+          --no-restore \
+          --output ${{ runner.temp }}/nupkg
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
@@ -87,13 +84,13 @@ jobs:
         name: Release v${{ steps.versioning.outputs.final_version }}
         draft: false
         prerelease: false
-        files: Muse/nupkg/*.nupkg
+        files: ${{ runner.temp }}/nupkg/*.nupkg
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Publish to NuGet
       run: |
-        dotnet nuget push Muse/nupkg/*.nupkg \
+        dotnet nuget push ${{ runner.temp }}/nupkg/*.nupkg \
           --api-key ${{ secrets.NUGET_API_KEY }} \
           --source https://api.nuget.org/v3/index.json \
           --skip-duplicate
