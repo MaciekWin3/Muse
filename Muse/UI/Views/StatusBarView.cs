@@ -68,6 +68,20 @@ public class StatusBarView : StatusBar
 
         Add(new Shortcut()
         {
+            Title = "Repeat: None",
+            Key = Key.R,
+            Action = () => uiEventBus.Publish(new TogglePlayModeRequested())
+        });
+
+        Add(new Shortcut()
+        {
+            Title = "Shuffle: Off",
+            Key = Key.S,
+            Action = () => uiEventBus.Publish(new ShuffleToggleRequested())
+        });
+
+        Add(new Shortcut()
+        {
             Title = "Switch Mode",
             Key = Key.Tab,
             Action = () => {
@@ -90,7 +104,7 @@ public class StatusBarView : StatusBar
 
     private void UpdateShortcutsVisibility(AppMode mode)
     {
-        var playerShortcuts = new[] { "Mute", "Unmute", "Play/Pause", "Prev", "Next", "Delete" };
+        var playerShortcuts = new[] { "Mute", "Unmute", "Play/Pause", "Prev", "Next", "Delete", "Repeat", "Shuffle" };
         foreach (var shortcut in SubViews.OfType<Shortcut>())
         {
             if (playerShortcuts.Any(s => shortcut.Title.StartsWith(s, StringComparison.OrdinalIgnoreCase)))
@@ -123,6 +137,36 @@ public class StatusBarView : StatusBar
                 if (muteShortcut != null)
                 {
                     muteShortcut.Title = msg.Volume == 0f ? "Unmute" : "Mute";
+                }
+            });
+        });
+
+        uiEventBus.Subscribe<PlayModeChanged>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                var repeatShortcut = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.StartsWith("Repeat:"));
+                if (repeatShortcut != null)
+                {
+                    repeatShortcut.Title = msg.NewMode switch
+                    {
+                        PlayMode.None => "Repeat: None",
+                        PlayMode.Repeat => "Repeat: All",
+                        PlayMode.RepeatOne => "Repeat: One",
+                        _ => "Repeat"
+                    };
+                }
+            });
+        });
+
+        uiEventBus.Subscribe<ShuffleChanged>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                var shuffleShortcut = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.StartsWith("Shuffle:"));
+                if (shuffleShortcut != null)
+                {
+                    shuffleShortcut.Title = msg.IsShuffle ? "Shuffle: On" : "Shuffle: Off";
                 }
             });
         });
