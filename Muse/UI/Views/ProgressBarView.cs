@@ -47,11 +47,6 @@ public sealed class ProgressBarView : ProgressBar
             currentSongName = msg.Name;
             currentSeconds = msg.CurrentSeconds;
             totalSeconds = msg.TotalSeconds;
-
-            if (currentSeconds >= totalSeconds && totalSeconds > 0)
-            {
-                uiEventBus.Publish(new NextSongRequested());
-            }
         });
     }
 

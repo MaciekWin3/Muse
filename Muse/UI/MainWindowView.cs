@@ -34,6 +34,7 @@ public sealed class MainWindowView : Window
     private bool _isShuffle = false;
     private readonly Random _random = new();
     private readonly YoutubeClient _youtubeClient = new();
+    private bool _isTransitioning = false;
 
     public MainWindowView(IPlayerService player, IUiEventBus uiEventBus)
     {
@@ -54,6 +55,7 @@ public sealed class MainWindowView : Window
     {
         uiEventBus.Subscribe<SongSelected>(async msg =>
         {
+            _isTransitioning = false;
             if (player.CurrentTrack?.Path == msg.Track.Path)
             {
                 if (player.State == PlaybackState.Playing)
@@ -83,8 +85,7 @@ public sealed class MainWindowView : Window
             {
                 Application.AddTimeout(TimeSpan.FromMilliseconds(100), () =>
                 {
-                    TrackSong();
-                    return true;
+                    return TrackSong();
                 });
             }
             else
@@ -321,13 +322,13 @@ public sealed class MainWindowView : Window
         return bottomReserved;
     }
 
-    private void TrackSong()
+    private bool TrackSong()
     {
         var songInfoResult = player.GetSongInfo();
         if (!songInfoResult.Success)
         {
             progressBarView.Text = songInfoResult.Error;
-            return;
+            return true;
         }
 
         var info = songInfoResult.Value;
@@ -337,13 +338,13 @@ public sealed class MainWindowView : Window
 
         progressBarView.Title = $"Playing: {info.Name}{FormatTime(info.CurrentTime, info.TotalTimeInSeconds)}";
 
-        if (info.CurrentTime >= info.TotalTimeInSeconds)
+        if (info.CurrentTime >= info.TotalTimeInSeconds && !_isTransitioning)
         {
             if (_playMode == PlayMode.RepeatOne)
             {
                 player.ChangeCurrentSongTime(0);
                 player.Play();
-                return;
+                return true;
             }
 
             if (_playMode == PlayMode.None && !_isShuffle)
@@ -354,12 +355,16 @@ public sealed class MainWindowView : Window
                 {
                     uiEventBus.Publish(new PauseRequested());
                     player.Stop();
-                    return;
+                    return false;
                 }
             }
 
+            _isTransitioning = true;
             uiEventBus.Publish(new NextSongRequested());
+            return false; // Stop this timer, new song will start its own
         }
+
+        return true;
     }
 
     private static string FormatTime(int current, int total)
