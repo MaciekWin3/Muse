@@ -1,5 +1,6 @@
 ﻿using Muse.Utils;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
@@ -10,6 +11,7 @@ public class PlayerService : IPlayerService, IDisposable
     private readonly WaveOutEvent waveOutDevice;
     private WaveStream? waveStream;
     private ISampleProvider? sampleProvider;
+    private VolumeSampleProvider? volumeProvider;
     private float volume = 0.5f;
     private readonly YoutubeClient youtubeClient = new();
 
@@ -52,7 +54,6 @@ public class PlayerService : IPlayerService, IDisposable
                 else
                 {
                     var reader = new AudioFileReader(urlToLoad);
-                    reader.Volume = volume;
                     waveStream = reader;
                     sampleProvider = reader;
                 }
@@ -65,7 +66,10 @@ public class PlayerService : IPlayerService, IDisposable
                 sampleProvider = mfReader.ToSampleProvider();
             }
 
-            waveOutDevice.Init(waveStream);
+            volumeProvider = new VolumeSampleProvider(sampleProvider);
+            volumeProvider.Volume = volume;
+
+            waveOutDevice.Init(volumeProvider);
             CurrentTrack = track;
             CurrentFilePath = track.Path;
             return Result.Ok();
@@ -107,14 +111,16 @@ public class PlayerService : IPlayerService, IDisposable
         this.volume = volume;
         Globals.Volume = volume;
         
+        if (volumeProvider != null)
+        {
+            volumeProvider.Volume = volume;
+        }
+
         if (waveStream is AudioFileReader afr)
         {
             afr.Volume = volume;
-            return Result.Ok();
         }
         
-        // If it's not AudioFileReader (e.g. MediaFoundationReader), we'd need a VolumeSampleProvider wrapper
-        // but for now we just save the global setting
         return Result.Ok();
     }
 
