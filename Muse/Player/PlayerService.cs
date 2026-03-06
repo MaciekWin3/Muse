@@ -9,6 +9,7 @@ public class PlayerService : IPlayerService, IDisposable
     private readonly WaveOutEvent waveOutDevice;
     private AudioFileReader audioFileReader = null!;
 
+    public string? CurrentFilePath { get; private set; }
     public PlaybackState State => waveOutDevice.PlaybackState;
 
     public PlayerService()
@@ -27,6 +28,7 @@ public class PlayerService : IPlayerService, IDisposable
             }
             audioFileReader = new AudioFileReader(fileName);
             waveOutDevice.Init(audioFileReader);
+            CurrentFilePath = fileName;
             return Result.Ok();
         }
         catch (Exception ex)

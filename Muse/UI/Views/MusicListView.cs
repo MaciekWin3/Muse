@@ -100,9 +100,9 @@ public sealed class MusicListView : FrameView
         listView.Activated += (sender, e) =>
         {
             var index = listView.SelectedItem;
-            if (index.HasValue && index.Value >= 0 && index.Value < songs.Count)
+            if (index is int i && i >= 0 && i < songs.Count)
             {
-                uiEventBus.Publish(new SongSelected(songs[index.Value].FullName));
+                uiEventBus.Publish(new SongSelected(songs[i].FullName));
             }
         };
     }

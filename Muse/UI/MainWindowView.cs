@@ -47,6 +47,21 @@ public sealed class MainWindowView : Window
     {
         uiEventBus.Subscribe<SongSelected>(msg =>
         {
+            if (player.CurrentFilePath == msg.FullPath)
+            {
+                if (player.State == PlaybackState.Playing)
+                {
+                    return;
+                }
+
+                if (player.State == PlaybackState.Paused)
+                {
+                    uiEventBus.Publish(new PlayRequested());
+                    player.Play();
+                    return;
+                }
+            }
+
             var loadResult = player.Load(msg.FullPath);
             if (!loadResult.Success)
             {
