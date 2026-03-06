@@ -1,8 +1,10 @@
-﻿using Muse.UI.Bus;
+using Muse.UI.Bus;
 using Muse.Utils;
 using Muse.YouTube;
+using System.Collections.ObjectModel;
 using System.Text;
 using Terminal.Gui.App;
+using Terminal.Gui.Configuration;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -12,6 +14,10 @@ public class MenuBarView : MenuBar
 {
     private readonly IYoutubeDownloadService youtubeDownloadService;
     private readonly IUiEventBus uiEventBus;
+
+    private PlayMode playMode = PlayMode.None;
+    private bool isShuffle = false;
+
     public MenuBarView(IYoutubeDownloadService youtubeDownloadService, IUiEventBus uiEventBus)
     {
         this.youtubeDownloadService = youtubeDownloadService;
@@ -26,62 +32,113 @@ public class MenuBarView : MenuBar
                 RebuildMenu();
             });
         });
+
+        uiEventBus.Subscribe<PlayModeChanged>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                playMode = msg.NewMode;
+                RebuildMenu();
+            });
+        });
+
+        uiEventBus.Subscribe<ShuffleChanged>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                isShuffle = msg.IsShuffle;
+                RebuildMenu();
+            });
+        });
     }
 
     private void RebuildMenu()
     {
-            Menus =
-                [
-                    new MenuBarItem("File", new MenuItem[]
-                    {
-                        new() { Title = "Open", HelpText = "Open music folder", Action = () => OpenFolder() },
-                        new() { Title = "Quit", HelpText = "Quit application", Action = () => Application.RequestStop() },
-                    }),
-                    new MenuBarItem("Playlists", GetPlaylistMenuItems()),
-                    new MenuBarItem("Help", new MenuItem[]
-                    {
-                        new() { Title = "About", HelpText = "About Muse", Action = () => ShowAsciiArt() },
-                        new() { Title = "Shortcuts", HelpText = "Show shortcuts", Action = () => ShowShortcuts() },
-                        new() { Title = "Website", HelpText = "Muse Website", Action = () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse") }
-                    }),
-                    new MenuBarItem("Download", new MenuItem[]
-                    {
-                        new() { Title = "From YT", HelpText = "Download file from YT", Action = () => ShowDownloadDialog() }
-                    })
-                ];
-        }        
-            private MenuItem[] GetPlaylistMenuItems()
+        var repeatTitle = playMode switch
+        {
+            PlayMode.None => "Repeat: None",
+            PlayMode.Repeat => "Repeat: All",
+            PlayMode.RepeatOne => "Repeat: One",
+            _ => "Repeat"
+        };
+
+        var shuffleTitle = isShuffle ? "Shuffle: On" : "Shuffle: Off";
+
+        Menus =
+        [
+            new MenuBarItem("File", new MenuItem[]
             {
-                var items = new List<MenuItem>
+                new() { Title = "Open", HelpText = "Open music folder", Action = () => OpenFolder() },
+                new() { Title = "Quit", HelpText = "Quit application", Action = () => Application.RequestStop() },
+            }),
+            new MenuBarItem("Options", new MenuItem[]
+            {
+                new() { Title = "Playlists", HelpText = "Choose playlist", SubMenu = new Menu(GetPlaylistMenuItems()) },
+                new() { Title = "Theme", HelpText = "Change color theme", SubMenu = new Menu(GetThemeMenuItems()) },
+                new() { Title = "Download", HelpText = "Download from YouTube", Action = () => ShowDownloadDialog() }
+            }),
+            new MenuBarItem("Playback", new MenuItem[]
+            {
+                new() { Title = repeatTitle, HelpText = "Toggle repeat mode (R)", Action = () => uiEventBus.Publish(new TogglePlayModeRequested()) },
+                new() { Title = shuffleTitle, HelpText = "Toggle shuffle mode (S)", Action = () => uiEventBus.Publish(new ShuffleToggleRequested()) }
+            }),
+            new MenuBarItem("Help", new MenuItem[]
+            {
+                new() { Title = "About", HelpText = "About Muse", Action = () => ShowAsciiArt() },
+                new() { Title = "Shortcuts", HelpText = "Show shortcuts", Action = () => ShowShortcuts() },
+                new() { Title = "Website", HelpText = "Muse Website", Action = () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse") }
+            })
+        ];
+    }
+
+    private MenuItem[] GetThemeMenuItems()
+    {
+        return new MenuItem[]
+        {
+            new() { Title = "Default", HelpText = "Default theme", Action = () => uiEventBus.Publish(new ChangeThemeRequested("Default")) },
+            new() { Title = "Dark", HelpText = "Dark theme", Action = () => uiEventBus.Publish(new ChangeThemeRequested("Dark")) },
+            new() { Title = "Light", HelpText = "Light theme", Action = () => uiEventBus.Publish(new ChangeThemeRequested("Light")) },
+            new() { Title = "TurboPascal 5", HelpText = "TurboPascal 5 theme", Action = () => uiEventBus.Publish(new ChangeThemeRequested("TurboPascal 5")) },
+            new() { Title = "Anders", HelpText = "Anders theme", Action = () => uiEventBus.Publish(new ChangeThemeRequested("Anders")) },
+            new() { Title = "Amber Phosphor", HelpText = "Amber Phosphor theme", Action = () => uiEventBus.Publish(new ChangeThemeRequested("Amber Phosphor")) },
+            new() { Title = "Green Phosphor", HelpText = "Green Phosphor theme", Action = () => uiEventBus.Publish(new ChangeThemeRequested("Green Phosphor")) },
+            new() { Title = "8-Bit", HelpText = "8-Bit theme", Action = () => uiEventBus.Publish(new ChangeThemeRequested("8-Bit")) }
+        };
+    }
+
+    private MenuItem[] GetPlaylistMenuItems()
+    {
+        var items = new List<MenuItem>
+        {
+            new() { Title = "All Songs", HelpText = "Show all songs", Action = () =>
+            {
+                Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(Globals.MuseDirectory)));
+            }}
+        };
+
+        if (Directory.Exists(Globals.MuseDirectory))
+        {
+            try
+            {
+                var subDirs = Directory.GetDirectories(Globals.MuseDirectory);
+                foreach (var dir in subDirs)
                 {
-                    new() { Title = "All Songs", HelpText = "Show all songs", Action = () =>
+                    var dirName = Path.GetFileName(dir);
+                    items.Add(new MenuItem { Title = dirName, HelpText = $"Show songs from {dirName}", Action = () =>
                     {
-                        Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(Globals.MuseDirectory)));
-                    }}
-                };
-        
-                if (Directory.Exists(Globals.MuseDirectory))
-                {
-                    try
-                    {
-                        var subDirs = Directory.GetDirectories(Globals.MuseDirectory);
-                        foreach (var dir in subDirs)
-                        {
-                            var dirName = Path.GetFileName(dir);
-                            items.Add(new MenuItem { Title = dirName, HelpText = $"Show songs from {dirName}", Action = () =>
-                            {
-                                Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(dir)));
-                            }});
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.ErrorQuery(null, "Error", $"Failed to list playlists: {ex.Message}", "Ok");
-                    }
+                        Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(dir)));
+                    }});
                 }
-        
-                return items.ToArray();
             }
+            catch (Exception ex)
+            {
+                MessageBox.ErrorQuery(null, "Error", $"Failed to list playlists: {ex.Message}", "Ok");
+            }
+        }
+
+        return items.ToArray();
+    }
+
     private void OpenFolder()
     {
         var fileExplorerDialog = new OpenDialog
@@ -162,6 +219,8 @@ public class MenuBarView : MenuBar
         sb.AppendLine("p  - Play/Pause");
         sb.AppendLine("n  - Next track");
         sb.AppendLine("b  - Previous track");
+        sb.AppendLine("r  - Repeat mode");
+        sb.AppendLine("s  - Shuffle mode");
 
         MessageBox.Query(null, 50, 15, "Shortcuts", sb.ToString(), "Ok");
     }
@@ -170,7 +229,7 @@ public class MenuBarView : MenuBar
     {
         var urlLabel = new Label()
         {
-            Title = "YouTube URL: ",
+            Text = "YouTube URL: ",
             X = 1,
             Y = 1,
         };
@@ -184,7 +243,7 @@ public class MenuBarView : MenuBar
 
         var nameLabel = new Label()
         {
-            Title = "Song name: ",
+            Text = "Song name: ",
             X = 1,
             Y = Pos.Bottom(urlTextField),
         };
@@ -196,18 +255,48 @@ public class MenuBarView : MenuBar
             Width = Dim.Fill()! - 5,
         };
 
-        var spinnerView = new SpinnerView
+        var playlistLabel = new Label()
         {
-            X = Pos.Right(urlTextField) + 2,
-            Y = 2,
+            Text = "Playlist: ",
+            X = 1,
+            Y = Pos.Bottom(nameTextField),
+        };
+
+        var playlists = new List<string> { "All Songs" };
+        if (Directory.Exists(Globals.MuseDirectory))
+        {
+            var subDirs = Directory.GetDirectories(Globals.MuseDirectory)
+                .Select(Path.GetFileName)
+                .Where(x => x != null)
+                .Select(x => x!)
+                .ToList();
+            playlists.AddRange(subDirs);
+        }
+
+        var playlistComboBox = new ComboBox()
+        {
+            X = 1,
+            Y = Pos.Bottom(playlistLabel),
+            Width = Dim.Fill()! - 5,
+            Height = 4,
+            Source = new ListWrapper<string>(new ObservableCollection<string>(playlists))
+        };
+        playlistComboBox.SelectedItem = 0;
+
+        var progressLabel = new Label()
+        {
+            Text = "Ready",
+            X = Pos.Center(),
+            Y = Pos.Bottom(playlistComboBox) + 1,
+            Width = Dim.Fill()! - 5,
             Visible = false
         };
 
         var textLabelSuccess = new Label()
         {
-            Title = "Downloaded successfully!",
+            Text = "Downloaded successfully!",
             X = Pos.Center(),
-            Y = Pos.Bottom(nameTextField) + 1,
+            Y = Pos.Bottom(progressLabel) + 1,
             Visible = false,
         };
 
@@ -215,7 +304,7 @@ public class MenuBarView : MenuBar
         {
             Title = "Download",
             Width = Dim.Percent(50),
-            Height = Dim.Percent(50),
+            Height = Dim.Percent(70),
         };
 
         var downloadButton = new Button()
@@ -228,26 +317,59 @@ public class MenuBarView : MenuBar
         {
             // Download
             e.Handled = true;
-            // Preparation 
-            textLabelSuccess.Visible = false;
-            spinnerView.Visible = true;
-            spinnerView.AutoSpin = true;
-            var url = urlTextField.Text;
-            var songName = nameTextField.Text;
 
-            var result = await youtubeDownloadService.DownloadAsync(url, songName);
+            // Validation
+            if (string.IsNullOrWhiteSpace(urlTextField.Text?.ToString()))
+            {
+                Application.Invoke(() => MessageBox.ErrorQuery(null, "Error", "URL cannot be empty", "Ok"));
+                return;
+            }
+
+            // Preparation
+            textLabelSuccess.Visible = false;
+            progressLabel.Visible = true;
+            progressLabel.Text = "Starting...";
+
+            var url = urlTextField.Text?.ToString().Trim() ?? string.Empty;
+            var songName = nameTextField.Text?.ToString().Trim() ?? string.Empty;
+
+            string relativePath = "";
+            if (playlistComboBox.SelectedItem >= 0 && playlistComboBox.SelectedItem < playlists.Count)
+            {
+                relativePath = playlistComboBox.SelectedItem == 0 ? "" : playlists[playlistComboBox.SelectedItem];
+            }
+
+            var progress = new Progress<double>(p =>
+            {
+                Application.Invoke(() =>
+                {
+                    int percentage = (int)(p * 100);
+                    int bars = percentage / 10;
+                    string barStr = new string('#', bars) + new string(' ', 10 - bars);
+                    progressLabel.Text = $"[{barStr}] {percentage}%";
+                });
+            });
+
+            downloadButton.Enabled = false;
+
+            var result = await youtubeDownloadService.DownloadAsync(url, songName, relativePath, progress);
+
+            downloadButton.Enabled = true;
 
             if (result.IsFailure)
             {
-                MessageBox.ErrorQuery(null, "Error", result.Error, "Ok");
+                progressLabel.Visible = false;
+                Application.Invoke(() => MessageBox.ErrorQuery(null, "Error", result.Error, "Ok"));
             }
             else
             {
                 urlTextField.Text = string.Empty;
                 nameTextField.Text = string.Empty;
                 textLabelSuccess.Visible = true;
-                spinnerView.Visible = false;
-                spinnerView.AutoSpin = false;
+                progressLabel.Text = "[##########] 100%";
+
+                // Trigger playlist reload if we downloaded to current folder
+                Application.Invoke(() => uiEventBus.Publish(new RefreshPlaylistsRequested()));
             }
 
         };
@@ -255,8 +377,6 @@ public class MenuBarView : MenuBar
         var exitButton = new Button()
         {
             Title = "Exit",
-            X = Pos.Center(),
-            Y = Pos.Percent(90),
         };
 
         exitButton.Accepting += (s, e) => Application.RequestStop(dialog);
@@ -265,7 +385,9 @@ public class MenuBarView : MenuBar
         dialog.Add(urlTextField);
         dialog.Add(nameLabel);
         dialog.Add(nameTextField);
-        dialog.Add(spinnerView);
+        dialog.Add(playlistLabel);
+        dialog.Add(playlistComboBox);
+        dialog.Add(progressLabel);
         dialog.Add(textLabelSuccess);
         dialog.AddButton(downloadButton);
         dialog.AddButton(exitButton);

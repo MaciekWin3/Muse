@@ -4,6 +4,7 @@ using Muse.UI.Bus;
 using Muse.UI.Views;
 using Muse.YouTube;
 using Terminal.Gui.App;
+using Terminal.Gui.Configuration;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
@@ -17,6 +18,7 @@ public class MuseApp : Runnable
     private readonly MenuBarView menuBarView;
     private readonly StatusBarView statusBarView;
     private readonly IUiEventBus uiEventBus;
+    private AppMode currentMode = AppMode.Shortcuts;
 
     public MuseApp(IPlayerService player, IYoutubeDownloadService youtubeDownloadService,
         MainWindowView mainWindow, MenuBarView menuBarView, StatusBarView statusBarView,
@@ -30,10 +32,43 @@ public class MuseApp : Runnable
         this.uiEventBus = uiEventBus;
         Add(mainWindow, statusBarView, menuBarView);
         Initialized += (s, e) => Application.KeyDown += OnGlobalKeyDown;
+
+        uiEventBus.Subscribe<ChangeThemeRequested>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                ThemeManager.Theme = msg.ThemeName;
+                ConfigurationManager.Apply();
+            });
+        });
+
+        uiEventBus.Subscribe<ChangeModeRequested>(msg =>
+        {
+            currentMode = msg.NewMode;
+        });
     }
 
     private void OnGlobalKeyDown(object? sender, Key key)
     {
+        if (Application.TopRunnableView is not MuseApp || Application.TopRunnableView.MostFocused is TextField)
+        {
+            return;
+        }
+
+        // Mode Toggling
+        if (key == Key.Tab)
+        {
+            currentMode = currentMode == AppMode.Search ? AppMode.Shortcuts : AppMode.Search;
+            uiEventBus.Publish(new ChangeModeRequested(currentMode));
+            key.Handled = true;
+            return;
+        }
+
+        if (currentMode != AppMode.Shortcuts)
+        {
+            return;
+        }
+
         if (key == Key.P)
         {
             uiEventBus.Publish(new TogglePlayRequested());
@@ -47,6 +82,21 @@ public class MuseApp : Runnable
         else if (key == Key.B)
         {
             uiEventBus.Publish(new PreviousSongRequested());
+            key.Handled = true;
+        }
+        else if (key == Key.D)
+        {
+            uiEventBus.Publish(new DeleteSongRequested());
+            key.Handled = true;
+        }
+        else if (key == Key.R)
+        {
+            uiEventBus.Publish(new TogglePlayModeRequested());
+            key.Handled = true;
+        }
+        else if (key == Key.S)
+        {
+            uiEventBus.Publish(new ShuffleToggleRequested());
             key.Handled = true;
         }
     }

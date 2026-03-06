@@ -5,6 +5,7 @@ namespace Muse.Player;
 
 public interface IPlayerService
 {
+    public string? CurrentFilePath { get; }
     public PlaybackState State { get; }
     Result Load(string fileName);
     Result Play();
