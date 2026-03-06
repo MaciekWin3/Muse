@@ -127,6 +127,10 @@ public class PlayerService : IPlayerService, IDisposable
     {
         if (waveStream is not null)
         {
+            if (CurrentTrack != null)
+            {
+                return Result.Ok(new SongInfo(waveStream, CurrentTrack.Name));
+            }
             return Result.Ok(new SongInfo(waveStream));
         }
         return Result.Fail<SongInfo>("Unable to get song info");
