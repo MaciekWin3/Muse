@@ -265,7 +265,7 @@ public sealed class MainWindowView : Window
         X = 0;
         Y = 1;
         Width = Dim.Fill();
-        Height = Dim.Fill() - 1;
+        Height = Dim.Fill() - 2;
     }
 
     private int CalculateReservedBottomSpace()

@@ -89,6 +89,16 @@ public class MuseApp : Toplevel
             uiEventBus.Publish(new DeleteSongRequested());
             key.Handled = true;
         }
+        else if (key == Key.R)
+        {
+            uiEventBus.Publish(new TogglePlayModeRequested());
+            key.Handled = true;
+        }
+        else if (key == Key.S)
+        {
+            uiEventBus.Publish(new ShuffleToggleRequested());
+            key.Handled = true;
+        }
     }
 
     protected override void Dispose(bool disposing)

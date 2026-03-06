@@ -14,6 +14,10 @@ public class MenuBarView : MenuBarv2
 {
     private readonly IYoutubeDownloadService youtubeDownloadService;
     private readonly IUiEventBus uiEventBus;
+
+    private PlayMode playMode = PlayMode.None;
+    private bool isShuffle = false;
+
     public MenuBarView(IYoutubeDownloadService youtubeDownloadService, IUiEventBus uiEventBus)
     {
         this.youtubeDownloadService = youtubeDownloadService;
@@ -28,10 +32,38 @@ public class MenuBarView : MenuBarv2
                 RebuildMenu();
             });
         });
+
+        uiEventBus.Subscribe<PlayModeChanged>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                playMode = msg.NewMode;
+                RebuildMenu();
+            });
+        });
+
+        uiEventBus.Subscribe<ShuffleChanged>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                isShuffle = msg.IsShuffle;
+                RebuildMenu();
+            });
+        });
     }
 
     private void RebuildMenu()
     {
+        var repeatTitle = playMode switch
+        {
+            PlayMode.None => "Repeat: None",
+            PlayMode.Repeat => "Repeat: All",
+            PlayMode.RepeatOne => "Repeat: One",
+            _ => "Repeat"
+        };
+
+        var shuffleTitle = isShuffle ? "Shuffle: On" : "Shuffle: Off";
+
         Menus =
         [
             new("File", new MenuItemv2[]
@@ -44,6 +76,11 @@ public class MenuBarView : MenuBarv2
                 new("Playlists", "Choose playlist", new Menuv2(GetPlaylistMenuItems())),
                 new("Theme", "Change color theme", new Menuv2(GetThemeMenuItems())),
                 new("Download", "Download from YouTube", () => ShowDownloadDialog())
+            }),
+            new("Playback", new MenuItemv2[]
+            {
+                new(repeatTitle, "Toggle repeat mode (R)", () => uiEventBus.Publish(new TogglePlayModeRequested())),
+                new(shuffleTitle, "Toggle shuffle mode (S)", () => uiEventBus.Publish(new ShuffleToggleRequested()))
             }),
             new("Help", new MenuItemv2[]
             {
@@ -181,6 +218,8 @@ public class MenuBarView : MenuBarv2
         sb.AppendLine("p  - Play/Pause");
         sb.AppendLine("n  - Next track");
         sb.AppendLine("b  - Previous track");
+        sb.AppendLine("r  - Repeat mode");
+        sb.AppendLine("s  - Shuffle mode");
 
         MessageBox.Query(50, 15, "Shortcuts", sb.ToString(), "Ok");
     }
