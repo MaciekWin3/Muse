@@ -10,6 +10,7 @@ public class PlayerService : IPlayerService, IDisposable
     private ISampleProvider? sampleProvider;
     private float volume = 0.5f;
 
+    public string? CurrentFilePath { get; private set; }
     public PlaybackState State => waveOutDevice.PlaybackState;
 
     public PlayerService()
@@ -43,6 +44,7 @@ public class PlayerService : IPlayerService, IDisposable
             }
 
             waveOutDevice.Init(waveStream);
+            CurrentFilePath = fileName;
             return Result.Ok();
         }
         catch (Exception ex)
