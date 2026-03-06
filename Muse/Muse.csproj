@@ -8,7 +8,7 @@
     <NoWarn>NU1608</NoWarn>
 	<Authors>Maciej Winnik</Authors>
 	<Description>Terminal music player</Description>
-	<PackageVersion>0.2.2</PackageVersion>
+	<PackageVersion>0.2.3</PackageVersion>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<ProjectURL>https://github.com/MaciekWin3/Muse</ProjectURL>
 	<RepositoryURL>https://github.com/MaciekWin3/Muse</RepositoryURL>
