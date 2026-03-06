@@ -75,7 +75,8 @@ public class MenuBarView : MenuBarv2
             {
                 new("Playlists", "Choose playlist", new Menuv2(GetPlaylistMenuItems())),
                 new("Theme", "Change color theme", new Menuv2(GetThemeMenuItems())),
-                new("Download", "Download from YouTube", () => ShowDownloadDialog())
+                new("Download", "Download from YouTube", () => ShowDownloadDialog()),
+                new("Stream Playlist", "Stream YouTube playlist", () => ShowStreamPlaylistDialog())
             }),
             new("Playback", new MenuItemv2[]
             {
@@ -390,6 +391,63 @@ public class MenuBarView : MenuBarv2
         dialog.Add(progressLabel);
         dialog.Add(textLabelSuccess);
         dialog.AddButton(downloadButton);
+        dialog.AddButton(exitButton);
+
+        Application.Run(dialog);
+    }
+
+    private void ShowStreamPlaylistDialog()
+    {
+        var urlLabel = new Label()
+        {
+            Text = "YouTube Playlist URL: ",
+            X = 1,
+            Y = 1,
+        };
+
+        var urlTextField = new TextField()
+        {
+            X = 1,
+            Y = 2,
+            Width = Dim.Fill()! - 5,
+        };
+
+        var dialog = new Dialog()
+        {
+            Title = "Stream Playlist",
+            Width = Dim.Percent(50),
+            Height = Dim.Percent(30),
+        };
+
+        var loadButton = new Button()
+        {
+            Title = "Load",
+        };
+
+        loadButton.Accepting += (s, e) =>
+        {
+            var url = urlTextField.Text?.ToString().Trim();
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", "URL cannot be empty", "Ok"));
+                return;
+            }
+
+            uiEventBus.Publish(new LoadYoutubePlaylist(url));
+            Application.RequestStop(dialog);
+            e.Handled = true;
+        };
+
+        var exitButton = new Button()
+        {
+            Title = "Exit",
+        };
+
+        exitButton.Accepting += (s, e) => Application.RequestStop(dialog);
+
+        dialog.Add(urlLabel);
+        dialog.Add(urlTextField);
+        dialog.AddButton(loadButton);
         dialog.AddButton(exitButton);
 
         Application.Run(dialog);

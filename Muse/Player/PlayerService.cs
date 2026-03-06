@@ -1,5 +1,7 @@
 ﻿using Muse.Utils;
 using NAudio.Wave;
+using YoutubeExplode;
+using YoutubeExplode.Videos.Streams;
 
 namespace Muse.Player;
 
@@ -9,7 +11,9 @@ public class PlayerService : IPlayerService, IDisposable
     private WaveStream? waveStream;
     private ISampleProvider? sampleProvider;
     private float volume = 0.5f;
+    private readonly YoutubeClient youtubeClient = new();
 
+    public Track? CurrentTrack { get; private set; }
     public string? CurrentFilePath { get; private set; }
     public PlaybackState State => waveOutDevice.PlaybackState;
 
@@ -19,37 +23,56 @@ public class PlayerService : IPlayerService, IDisposable
         volume = Globals.Volume;
     }
 
-    public Result Load(string fileName)
+    public async Task<Result> Load(Track track)
     {
         try
         {
             Stop();
             waveStream?.Dispose();
 
+            string urlToLoad = track.Path;
+
+            if (track.Source == TrackSource.YouTube)
+            {
+                var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId!);
+                var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate();
+                urlToLoad = streamInfo.Url;
+            }
+
             try
             {
-                var reader = new AudioFileReader(fileName);
-                reader.Volume = volume;
-                waveStream = reader;
-                sampleProvider = reader;
+                // AudioFileReader can load from URL as well if the format is supported,
+                // but for YouTube streams MediaFoundationReader is safer and more robust for URLs.
+                if (track.Source == TrackSource.YouTube)
+                {
+                    var mfReader = new MediaFoundationReader(urlToLoad);
+                    waveStream = mfReader;
+                    sampleProvider = mfReader.ToSampleProvider();
+                }
+                else
+                {
+                    var reader = new AudioFileReader(urlToLoad);
+                    reader.Volume = volume;
+                    waveStream = reader;
+                    sampleProvider = reader;
+                }
             }
             catch (Exception)
             {
-                // Fallback to MediaFoundationReader for tricky formats on Windows
-                var mfReader = new MediaFoundationReader(fileName);
+                // Fallback to MediaFoundationReader for tricky formats or URLs
+                var mfReader = new MediaFoundationReader(urlToLoad);
                 waveStream = mfReader;
-                // MediaFoundationReader doesn't have Volume property, we might need a wrapper if we want volume control here
-                // For now, let's just get it playing
                 sampleProvider = mfReader.ToSampleProvider();
             }
 
             waveOutDevice.Init(waveStream);
-            CurrentFilePath = fileName;
+            CurrentTrack = track;
+            CurrentFilePath = track.Path;
             return Result.Ok();
         }
         catch (Exception ex)
         {
-            return Result.Fail($"Failed to load audio file: {ex.Message}");
+            return Result.Fail($"Failed to load audio: {ex.Message}");
         }
     }
 

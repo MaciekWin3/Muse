@@ -4,6 +4,8 @@ using Muse.UI.Views;
 using Muse.Utils;
 using NAudio.Wave;
 using System.Threading;
+using YoutubeExplode;
+using YoutubeExplode.Playlists;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -22,7 +24,7 @@ public sealed class MainWindowView : Window
 
     private readonly FileSystemWatcher watcher = new();
     private int NumberOfSongs { get; set; }
-    public List<FileInfo> Playlist { get; set; }
+    public List<Track> Playlist { get; set; }
 
     private readonly IUiEventBus uiEventBus;
     private CancellationTokenSource? _debounceCts;
@@ -31,6 +33,7 @@ public sealed class MainWindowView : Window
     private PlayMode _playMode = PlayMode.None;
     private bool _isShuffle = false;
     private readonly Random _random = new();
+    private readonly YoutubeClient _youtubeClient = new();
 
     public MainWindowView(IPlayerService player, IUiEventBus uiEventBus)
     {
@@ -38,7 +41,7 @@ public sealed class MainWindowView : Window
         this.uiEventBus = uiEventBus;
         _currentDirectory = Globals.MuseDirectory;
 
-        Playlist = [.. MusicListHelper.GetMusicList(_currentDirectory)];
+        Playlist = MusicListHelper.GetMusicList(_currentDirectory).Select(Track.FromFileInfo).ToList();
         NumberOfSongs = Playlist.Count;
         RegisterBusHandlers();
         RegisterControls();
@@ -49,9 +52,9 @@ public sealed class MainWindowView : Window
 
     private void RegisterBusHandlers()
     {
-        uiEventBus.Subscribe<SongSelected>(msg =>
+        uiEventBus.Subscribe<SongSelected>(async msg =>
         {
-            if (player.CurrentFilePath == msg.FullPath)
+            if (player.CurrentTrack?.Path == msg.Track.Path)
             {
                 if (player.State == PlaybackState.Playing)
                 {
@@ -66,11 +69,11 @@ public sealed class MainWindowView : Window
                 }
             }
 
-            var loadResult = player.Load(msg.FullPath);
+            var loadResult = await player.Load(msg.Track);
             if (!loadResult.Success)
             {
                 uiEventBus.Publish(new PauseRequested());
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", $"Cannot load file: {loadResult.Error}", "OK"));
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", $"Cannot load track: {loadResult.Error}", "OK"));
                 return;
             }
             uiEventBus.Publish(new PlayRequested());
@@ -159,6 +162,38 @@ public sealed class MainWindowView : Window
             uiEventBus.Publish(new PlaylistUpdated(Playlist));
         });
 
+        uiEventBus.Subscribe<LoadYoutubePlaylist>(async msg =>
+        {
+            try
+            {
+                var playlist = await _youtubeClient.Playlists.GetAsync(msg.PlaylistUrl);
+                
+                var newTracks = new List<Track>();
+                await foreach (var v in _youtubeClient.Playlists.GetVideosAsync(playlist.Id))
+                {
+                    newTracks.Add(new Track
+                    {
+                        Name = v.Title,
+                        Path = v.Url,
+                        Source = TrackSource.YouTube,
+                        YouTubeId = v.Id,
+                        DurationInSeconds = (int?)(v.Duration?.TotalSeconds)
+                    });
+                }
+
+                Application.Invoke(() =>
+                {
+                    Playlist = newTracks;
+                    NumberOfSongs = Playlist.Count;
+                    uiEventBus.Publish(new PlaylistUpdated(Playlist));
+                });
+            }
+            catch (Exception ex)
+            {
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", $"Failed to load YouTube playlist: {ex.Message}", "OK"));
+            }
+        });
+
         uiEventBus.Subscribe<TrackProgress>(msg =>
         {
             Application.Invoke(() =>
@@ -177,7 +212,7 @@ public sealed class MainWindowView : Window
             if (_isShuffle && Playlist.Count > 0)
             {
                 int newIndex = _random.Next(Playlist.Count);
-                uiEventBus.Publish(new SongSelected(Playlist[newIndex].FullName));
+                uiEventBus.Publish(new SongSelected(Playlist[newIndex]));
                 return;
             }
             uiEventBus.Publish(new ChangeSongIndexRequested(-1));
@@ -188,7 +223,7 @@ public sealed class MainWindowView : Window
             if (_isShuffle && Playlist.Count > 0)
             {
                 int newIndex = _random.Next(Playlist.Count);
-                uiEventBus.Publish(new SongSelected(Playlist[newIndex].FullName));
+                uiEventBus.Publish(new SongSelected(Playlist[newIndex]));
                 return;
             }
 
@@ -218,7 +253,7 @@ public sealed class MainWindowView : Window
         {
             if (t.IsCanceled) return;
 
-            var newPlaylist = MusicListHelper.GetMusicList(_currentDirectory).ToList();
+            var newPlaylist = MusicListHelper.GetMusicList(_currentDirectory).Select(Track.FromFileInfo).ToList();
 
             Application.Invoke(() =>
             {
@@ -314,8 +349,8 @@ public sealed class MainWindowView : Window
             if (_playMode == PlayMode.None && !_isShuffle)
             {
                 // Check if it's the last song
-                var currentSong = player.CurrentFilePath;
-                if (currentSong != null && Playlist.Count > 0 && Playlist.Last().FullName == currentSong)
+                var currentTrack = player.CurrentTrack;
+                if (currentTrack != null && Playlist.Count > 0 && Playlist.Last().Path == currentTrack.Path)
                 {
                     uiEventBus.Publish(new PauseRequested());
                     player.Stop();
@@ -347,7 +382,7 @@ public sealed class MainWindowView : Window
         _currentDirectory = path;
         watcher.Path = Globals.MuseDirectory;
 
-        Playlist = [.. MusicListHelper.GetMusicList(path)];
+        Playlist = MusicListHelper.GetMusicList(path).Select(Track.FromFileInfo).ToList();
         NumberOfSongs = Playlist.Count;
     }
 
@@ -356,6 +391,7 @@ public sealed class MainWindowView : Window
         if (disposing)
         {
             watcher.Dispose();
+            _debounceCts?.Cancel();
             _debounceCts?.Dispose();
         }
         base.Dispose(disposing);

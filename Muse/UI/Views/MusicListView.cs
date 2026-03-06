@@ -14,7 +14,7 @@ public sealed class MusicListView : FrameView
     private readonly IUiEventBus uiEventBus;
     private readonly ListView listView;
     private readonly IPlayerService playerService;
-    private List<FileInfo> songs = [];
+    private List<Track> songs = [];
 
     private PlayMode _playMode = PlayMode.None;
 
@@ -60,7 +60,7 @@ public sealed class MusicListView : FrameView
                 );
             });
         });
-        uiEventBus.Subscribe<ChangeSongIndexRequested>(msg =>
+        uiEventBus.Subscribe<ChangeSongIndexRequested>(async msg =>
         {
             var count = listView.Source.Count;
 
@@ -103,9 +103,9 @@ public sealed class MusicListView : FrameView
                 return;
             }
 
-            var song = songs[newIndex];
+            var track = songs[newIndex];
 
-            var loadResult = playerService.Load(song.FullName);
+            var loadResult = await playerService.Load(track);
             if (!loadResult.Success)
             {
                 MessageBox.ErrorQuery("Error", $"Cannot load file: {loadResult.Error}", "Ok");
@@ -119,17 +119,22 @@ public sealed class MusicListView : FrameView
             int selectedIndex = listView.SelectedItem;
             if (selectedIndex >= 0 && selectedIndex < songs.Count)
             {
-                var song = songs[selectedIndex];
-                var result = MessageBox.Query("Delete", $"Are you sure you want to delete {song.Name}?", "Yes", "No");
+                var track = songs[selectedIndex];
+                if (track.Source != TrackSource.Local)
+                {
+                    // Cannot delete remote track from disk
+                    return;
+                }
+                var result = MessageBox.Query("Delete", $"Are you sure you want to delete {track.Name}?", "Yes", "No");
                 if (result == 0) // Yes
                 {
                     try
                     {
-                        if (File.Exists(song.FullName))
+                        if (File.Exists(track.Path))
                         {
                             // If it's currently playing, we should probably stop it
                             playerService.Stop();
-                            File.Delete(song.FullName);
+                            File.Delete(track.Path);
                             uiEventBus.Publish(new RefreshPlaylistsRequested());
                         }
                     }
@@ -150,7 +155,7 @@ public sealed class MusicListView : FrameView
             int index = e.Item;
             if (index >= 0 && index < songs.Count)
             {
-                uiEventBus.Publish(new SongSelected(songs[index].FullName));
+                uiEventBus.Publish(new SongSelected(songs[index]));
             }
         };
     }

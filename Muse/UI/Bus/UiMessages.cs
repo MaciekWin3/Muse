@@ -1,6 +1,8 @@
+using Muse.Player;
+
 namespace Muse.UI.Bus
 {
-    public sealed record SongSelected(string FullPath);
+    public sealed record SongSelected(Track Track);
     public sealed record PlayRequested();
     public sealed record PauseRequested();
     public sealed record TogglePlayRequested();
@@ -11,9 +13,10 @@ namespace Muse.UI.Bus
     public sealed record VolumeChanged(float Volume);
     public sealed record MuteToggle(bool IsMuted);
     public sealed record ReloadPlaylist(string DirectoryPath);
+    public sealed record LoadYoutubePlaylist(string PlaylistUrl);
     public sealed record ChangeSongIndexRequested(int Offset);
     public sealed record TrackProgress(string Name, int CurrentSeconds, int TotalSeconds);
-    public sealed record PlaylistUpdated(System.Collections.Generic.IReadOnlyList<FileInfo> Songs);
+    public sealed record PlaylistUpdated(System.Collections.Generic.IReadOnlyList<Track> Songs);
     public sealed record RefreshPlaylistsRequested();
     public sealed record ChangeThemeRequested(string ThemeName);
 
