@@ -17,6 +17,18 @@ namespace Muse.UI.Bus
     public sealed record RefreshPlaylistsRequested();
     public sealed record ChangeThemeRequested(string ThemeName);
 
+    public enum PlayMode
+    {
+        None,
+        Repeat,
+        RepeatOne
+    }
+
+    public sealed record TogglePlayModeRequested();
+    public sealed record ShuffleToggleRequested();
+    public sealed record PlayModeChanged(PlayMode NewMode);
+    public sealed record ShuffleChanged(bool IsShuffle);
+
     public enum AppMode
     {
         Search,

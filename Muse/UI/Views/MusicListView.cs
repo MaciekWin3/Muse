@@ -16,6 +16,8 @@ public sealed class MusicListView : FrameView
     private readonly IPlayerService playerService;
     private List<FileInfo> songs = [];
 
+    private PlayMode _playMode = PlayMode.None;
+
     public MusicListView(IUiEventBus uiEventBus, IPlayerService playerService, Pos x, Pos y, int bottomReserved)
     {
         this.uiEventBus = uiEventBus;
@@ -43,6 +45,11 @@ public sealed class MusicListView : FrameView
 
     private void RegisterBusHandlers()
     {
+        uiEventBus.Subscribe<PlayModeChanged>(msg =>
+        {
+            _playMode = msg.NewMode;
+        });
+
         uiEventBus.Subscribe<PlaylistUpdated>(msg =>
         {
             Application.Invoke(() =>
@@ -63,11 +70,29 @@ public sealed class MusicListView : FrameView
             }
 
             int currentIndex = listView.SelectedItem;
-            int newIndex = (currentIndex + msg.Offset) % count;
+            int newIndex = currentIndex + msg.Offset;
 
             if (newIndex < 0)
             {
-                newIndex += count;
+                if (_playMode == PlayMode.Repeat)
+                {
+                    newIndex = count - 1;
+                }
+                else
+                {
+                    return; // Don't wrap
+                }
+            }
+            else if (newIndex >= count)
+            {
+                if (_playMode == PlayMode.Repeat)
+                {
+                    newIndex = 0;
+                }
+                else
+                {
+                    return; // Don't wrap
+                }
             }
 
             listView.SelectedItem = newIndex;

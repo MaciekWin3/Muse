@@ -28,6 +28,10 @@ public sealed class MainWindowView : Window
     private CancellationTokenSource? _debounceCts;
     private string _currentDirectory;
 
+    private PlayMode _playMode = PlayMode.None;
+    private bool _isShuffle = false;
+    private readonly Random _random = new();
+
     public MainWindowView(IPlayerService player, IUiEventBus uiEventBus)
     {
         this.player = player;
@@ -170,12 +174,37 @@ public sealed class MainWindowView : Window
 
         uiEventBus.Subscribe<PreviousSongRequested>(_ =>
         {
+            if (_isShuffle && Playlist.Count > 0)
+            {
+                int newIndex = _random.Next(Playlist.Count);
+                uiEventBus.Publish(new SongSelected(Playlist[newIndex].FullName));
+                return;
+            }
             uiEventBus.Publish(new ChangeSongIndexRequested(-1));
         });
 
         uiEventBus.Subscribe<NextSongRequested>(_ =>
         {
+            if (_isShuffle && Playlist.Count > 0)
+            {
+                int newIndex = _random.Next(Playlist.Count);
+                uiEventBus.Publish(new SongSelected(Playlist[newIndex].FullName));
+                return;
+            }
+
             uiEventBus.Publish(new ChangeSongIndexRequested(+1));
+        });
+
+        uiEventBus.Subscribe<TogglePlayModeRequested>(_ =>
+        {
+            _playMode = (PlayMode)(((int)_playMode + 1) % Enum.GetValues<PlayMode>().Length);
+            uiEventBus.Publish(new PlayModeChanged(_playMode));
+        });
+
+        uiEventBus.Subscribe<ShuffleToggleRequested>(_ =>
+        {
+            _isShuffle = !_isShuffle;
+            uiEventBus.Publish(new ShuffleChanged(_isShuffle));
         });
     }
 
@@ -275,6 +304,25 @@ public sealed class MainWindowView : Window
 
         if (info.CurrentTime >= info.TotalTimeInSeconds)
         {
+            if (_playMode == PlayMode.RepeatOne)
+            {
+                player.ChangeCurrentSongTime(0);
+                player.Play();
+                return;
+            }
+
+            if (_playMode == PlayMode.None && !_isShuffle)
+            {
+                // Check if it's the last song
+                var currentSong = player.CurrentFilePath;
+                if (currentSong != null && Playlist.Count > 0 && Playlist.Last().FullName == currentSong)
+                {
+                    uiEventBus.Publish(new PauseRequested());
+                    player.Stop();
+                    return;
+                }
+            }
+
             uiEventBus.Publish(new NextSongRequested());
         }
     }
