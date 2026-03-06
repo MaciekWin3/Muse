@@ -8,7 +8,7 @@ using Terminal.Gui.Views;
 
 namespace Muse.UI.Views;
 
-public class MenuBarView : MenuBarv2
+public class MenuBarView : MenuBar
 {
     private readonly IYoutubeDownloadService youtubeDownloadService;
     private readonly IUiEventBus uiEventBus;
@@ -32,32 +32,32 @@ public class MenuBarView : MenuBarv2
     {
             Menus =
                 [
-                    new("File", new MenuItemv2[]
+                    new MenuBarItem("File", new MenuItem[]
                     {
-                        new("Open", "Open music folder", () => OpenFolder()),
-                        new("Quit", "Quit application", () => Application.RequestStop()),
+                        new() { Title = "Open", HelpText = "Open music folder", Action = () => OpenFolder() },
+                        new() { Title = "Quit", HelpText = "Quit application", Action = () => Application.RequestStop() },
                     }),
-                    new("Playlists", GetPlaylistMenuItems()),
-                    new("Help", new MenuItemv2[]
+                    new MenuBarItem("Playlists", GetPlaylistMenuItems()),
+                    new MenuBarItem("Help", new MenuItem[]
                     {
-                        new("About", "About Muse", () => ShowAsciiArt()),
-                        new("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
-                        new("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
+                        new() { Title = "About", HelpText = "About Muse", Action = () => ShowAsciiArt() },
+                        new() { Title = "Shortcuts", HelpText = "Show shortcuts", Action = () => ShowShortcuts() },
+                        new() { Title = "Website", HelpText = "Muse Website", Action = () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse") }
                     }),
-                    new("Download", new MenuItemv2[]
+                    new MenuBarItem("Download", new MenuItem[]
                     {
-                        new("From YT", "Download file from YT", () => ShowDownloadDialog())
+                        new() { Title = "From YT", HelpText = "Download file from YT", Action = () => ShowDownloadDialog() }
                     })
                 ];
         }        
-            private MenuItemv2[] GetPlaylistMenuItems()
+            private MenuItem[] GetPlaylistMenuItems()
             {
-                var items = new List<MenuItemv2>
+                var items = new List<MenuItem>
                 {
-                    new("All Songs", "Show all songs", () =>
+                    new() { Title = "All Songs", HelpText = "Show all songs", Action = () =>
                     {
                         Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(Globals.MuseDirectory)));
-                    })
+                    }}
                 };
         
                 if (Directory.Exists(Globals.MuseDirectory))
@@ -68,15 +68,15 @@ public class MenuBarView : MenuBarv2
                         foreach (var dir in subDirs)
                         {
                             var dirName = Path.GetFileName(dir);
-                            items.Add(new MenuItemv2(dirName, $"Show songs from {dirName}", () =>
+                            items.Add(new MenuItem { Title = dirName, HelpText = $"Show songs from {dirName}", Action = () =>
                             {
                                 Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(dir)));
-                            }));
+                            }});
                         }
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.ErrorQuery("Error", $"Failed to list playlists: {ex.Message}", "Ok");
+                        MessageBox.ErrorQuery(null, "Error", $"Failed to list playlists: {ex.Message}", "Ok");
                     }
                 }
         
@@ -112,11 +112,11 @@ public class MenuBarView : MenuBarv2
 
     private MainWindowView? FindMainWindow()
     {
-        if (Application.Top is null)
+        if (Application.TopRunnableView is null)
         {
             return null;
         }
-        return FindIn([.. Application.Top.SubViews]);
+        return FindIn([.. Application.TopRunnableView.SubViews]);
     }
 
     private MainWindowView? FindIn(IList<View> views)
@@ -148,7 +148,7 @@ public class MenuBarView : MenuBarv2
         sb.AppendLine(@" | |  | | |__| |____) | |____ ");
         sb.AppendLine(@" |_|  |_|\____/|_____/|______|");
         sb.AppendLine();
-        MessageBox.Query(50, 15, "About", sb.ToString(), "Ok");
+        MessageBox.Query(null, 50, 15, "About", sb.ToString(), "Ok");
     }
 
     private static void ShowShortcuts()
@@ -163,7 +163,7 @@ public class MenuBarView : MenuBarv2
         sb.AppendLine("n  - Next track");
         sb.AppendLine("b  - Previous track");
 
-        MessageBox.Query(50, 15, "Shortcuts", sb.ToString(), "Ok");
+        MessageBox.Query(null, 50, 15, "Shortcuts", sb.ToString(), "Ok");
     }
 
     private void ShowDownloadDialog()
@@ -239,7 +239,7 @@ public class MenuBarView : MenuBarv2
 
             if (result.IsFailure)
             {
-                MessageBox.ErrorQuery("Error", result.Error, "Ok");
+                MessageBox.ErrorQuery(null, "Error", result.Error, "Ok");
             }
             else
             {
@@ -259,7 +259,7 @@ public class MenuBarView : MenuBarv2
             Y = Pos.Percent(90),
         };
 
-        exitButton.Accepting += (s, e) => dialog.Running = false;
+        exitButton.Accepting += (s, e) => Application.RequestStop(dialog);
 
         dialog.Add(urlLabel);
         dialog.Add(urlTextField);

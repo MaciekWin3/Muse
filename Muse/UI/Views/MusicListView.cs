@@ -62,7 +62,11 @@ public sealed class MusicListView : FrameView
                 return;
             }
 
-            int currentIndex = listView.SelectedItem;
+            if (listView.SelectedItem is not int currentIndex)
+            {
+                return;
+            }
+
             int newIndex = (currentIndex + msg.Offset) % count;
 
             if (newIndex < 0)
@@ -74,7 +78,7 @@ public sealed class MusicListView : FrameView
 
             if (newIndex < 0 || newIndex >= songs.Count)
             {
-                MessageBox.ErrorQuery("Error", "Unable to obtain song info.", "Ok");
+                MessageBox.ErrorQuery(null, "Error", "Unable to obtain song info.", "Ok");
                 return;
             }
 
@@ -83,7 +87,7 @@ public sealed class MusicListView : FrameView
             var loadResult = playerService.Load(song.FullName);
             if (!loadResult.Success)
             {
-                MessageBox.ErrorQuery("Error", $"Cannot load file: {loadResult.Error}", "Ok");
+                MessageBox.ErrorQuery(null, "Error", $"Cannot load file: {loadResult.Error}", "Ok");
                 return;
             }
             playerService.Play();
@@ -93,12 +97,12 @@ public sealed class MusicListView : FrameView
 
     private void RegisterEvents()
     {
-        listView.OpenSelectedItem += (sender, e) =>
+        listView.Activated += (sender, e) =>
         {
-            int index = e.Item;
-            if (index >= 0 && index < songs.Count)
+            var index = listView.SelectedItem;
+            if (index.HasValue && index.Value >= 0 && index.Value < songs.Count)
             {
-                uiEventBus.Publish(new SongSelected(songs[index].FullName));
+                uiEventBus.Publish(new SongSelected(songs[index.Value].FullName));
             }
         };
     }
