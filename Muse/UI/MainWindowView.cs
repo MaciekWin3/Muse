@@ -51,7 +51,7 @@ public sealed class MainWindowView : Window
             if (!loadResult.Success)
             {
                 uiEventBus.Publish(new PauseRequested());
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", $"Cannot load file: {loadResult.Error}", "OK"));
+                Application.Invoke(() => MessageBox.ErrorQuery(null, "Error", $"Cannot load file: {loadResult.Error}", "OK"));
                 return;
             }
             uiEventBus.Publish(new PlayRequested());
@@ -67,7 +67,7 @@ public sealed class MainWindowView : Window
             }
             else
             {
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", result.Error, "OK"));
+                Application.Invoke(() => MessageBox.ErrorQuery(null, "Error", result.Error, "OK"));
             }
         });
 
@@ -76,7 +76,7 @@ public sealed class MainWindowView : Window
             var songInfoResult = player.GetSongInfo();
             if (songInfoResult.IsFailure)
             {
-                MessageBox.ErrorQuery("Error", "Please select a song", "OK");
+                MessageBox.ErrorQuery(null, "Error", "Please select a song", "OK");
                 uiEventBus.Publish(new PauseRequested());
                 return;
             }

@@ -9,7 +9,7 @@ using Terminal.Gui.Views;
 
 namespace Muse.App;
 
-public class MuseApp : Toplevel
+public class MuseApp : Runnable
 {
     private readonly IPlayerService player;
     private readonly IYoutubeDownloadService youtubeDownloadService;

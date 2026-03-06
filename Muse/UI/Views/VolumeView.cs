@@ -5,7 +5,7 @@ using Terminal.Gui.Views;
 
 namespace Muse.UI.Views;
 
-public sealed class VolumeView : Slider
+public sealed class VolumeView : LinearRange<object>
 {
     private const int VolumeSliderHeight = 4;
 
@@ -19,10 +19,10 @@ public sealed class VolumeView : Slider
     private int previousChoice = DefaultVolumeChoice;
 
     private readonly IUiEventBus uiBus;
-    private IEnumerable<SliderOption<object>> VolumeOptions =>
+    private IEnumerable<LinearRangeOption<object>> VolumeOptions =>
         Enumerable.Range(0, StepsCount)
             .Select(step => step * VolumeStep)
-            .Select(v => new SliderOption<object>
+            .Select(v => new LinearRangeOption<object>
             {
                 Data = v,
                 Legend = v.ToString()
@@ -38,7 +38,7 @@ public sealed class VolumeView : Slider
         Title = "Volume";
         Height = VolumeSliderHeight;
         Width = Dim.Fill();
-        Type = SliderType.Single;
+        Type = LinearRangeType.Single;
         UseMinimumSize = false;
         BorderStyle = LineStyle.Rounded;
         ShowEndSpacing = false;
