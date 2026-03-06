@@ -20,7 +20,7 @@ App is still under development, so update frequently:
 dotnet tool update --global MusePlayer
 ```
 
-Then to use app just tyoe `muse` in terminal.
+Then to use app just type `muse` in terminal.
 
 # Contributing 🤝
 If you want to contribute to this project, feel free to do so. I am open to any suggestions and improvements.
