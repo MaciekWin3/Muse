@@ -1,6 +1,7 @@
-﻿using Muse.Utils;
+using Muse.Utils;
 using Muse.YouTube;
 using YoutubeExplode;
+using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
 
 public class YoutubeDownloadService : IYoutubeDownloadService
@@ -12,42 +13,112 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         youtubeClient = new YoutubeClient();
     }
 
-    public async Task<Result> DownloadAsync(string link, string? name = null)
+    public async Task<Result> DownloadAsync(string link, string? name = null, string relativePath = "", IProgress<double>? progress = null)
     {
         try
         {
-            var video = await youtubeClient.Videos.GetAsync(link);
-
-            if (!Directory.Exists(Globals.MuseDirectory))
+            if (string.IsNullOrWhiteSpace(Globals.MuseDirectory))
             {
-                Directory.CreateDirectory(Globals.MuseDirectory);
+                return Result.Fail("MUSE_DIRECTORY is not set.");
             }
 
-            var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(link);
+            var videoId = VideoId.TryParse(link);
+            if (videoId == null)
+            {
+                return Result.Fail($"Failed to parse Video ID from link: {link}");
+            }
+
+            IVideo video;
+            try
+            {
+                video = await youtubeClient.Videos.GetAsync(videoId.Value);
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail($"Failed to retrieve video metadata for {videoId.Value}: {ex.Message}");
+            }
+
+            string baseDirectory = Path.GetFullPath(Globals.MuseDirectory);
+            string baseDirWithSeparator = baseDirectory.EndsWith(Path.DirectorySeparatorChar)
+                ? baseDirectory
+                : baseDirectory + Path.DirectorySeparatorChar;
+
+            string targetDirectory;
+            try
+            {
+                if (string.IsNullOrWhiteSpace(relativePath))
+                {
+                    targetDirectory = baseDirectory;
+                }
+                else
+                {
+                    string combinedPath = Path.Combine(baseDirectory, relativePath);
+                    string fullTargetDirectory = Path.GetFullPath(combinedPath);
+
+                    // Ensure the target directory stays within the base directory
+                    bool isSubDir = fullTargetDirectory.StartsWith(baseDirWithSeparator, StringComparison.OrdinalIgnoreCase);
+                    bool isBaseDir = string.Equals(fullTargetDirectory, baseDirectory, StringComparison.OrdinalIgnoreCase);
+
+                    if (!isSubDir && !isBaseDir)
+                    {
+                        throw new ArgumentException($"Invalid relative path: {relativePath}. Target {fullTargetDirectory} is outside base {baseDirectory}");
+                    }
+
+                    targetDirectory = fullTargetDirectory;
+                }
+                if (!Directory.Exists(targetDirectory))
+                {
+                    Directory.CreateDirectory(targetDirectory);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail($"Failed to prepare output directory: {ex.Message}");
+            }
+
+            StreamManifest manifest;
+            try
+            {
+                manifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoId.Value);
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail($"Failed to retrieve stream manifest for {videoId.Value}: {ex.Message}");
+            }
 
             var audioStream = manifest
                 .GetAudioOnlyStreams()
-                .Where(s => s.Container == Container.Mp4)
-                .GetWithHighestBitrate();
+                .OrderByDescending(s => s.Container == Container.Mp4)
+                .ThenByDescending(s => s.AudioCodec.Equals("aac", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(s => s.Bitrate)
+                .FirstOrDefault();
 
             if (audioStream is null)
             {
                 return Result.Fail("No audio-only stream found for this video.");
             }
 
-            string fileName = name ?? video.Title;
+            string fileName = string.IsNullOrWhiteSpace(name) ? video.Title : name;
             fileName = SanitizeFileName(fileName);
             string extension = audioStream.Container.Name;
 
-            string outputPath = Path.Combine(Globals.MuseDirectory, $"{fileName}.{extension}");
+            string outputPath = Path.Combine(targetDirectory, $"{fileName}.{extension}");
+            outputPath = GetUniqueFilePath(outputPath);
 
-            await youtubeClient.Videos.Streams.DownloadAsync(audioStream, outputPath);
+            try
+            {
+                await youtubeClient.Videos.Streams.DownloadAsync(audioStream, outputPath, progress);
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail($"Failed to download audio stream to {outputPath}: {ex.Message}");
+            }
 
             return Result.Ok();
         }
         catch (Exception ex)
         {
-            return Result.Fail(ex.Message);
+            return Result.Fail($"{ex.GetType().Name}: {ex.Message}");
         }
     }
 
@@ -58,5 +129,27 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             fileName = fileName.Replace(c, '_');
         }
         return fileName;
+    }
+
+    private static string GetUniqueFilePath(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            return filePath;
+        }
+
+        string directory = Path.GetDirectoryName(filePath)!;
+        string fileName = Path.GetFileNameWithoutExtension(filePath);
+        string extension = Path.GetExtension(filePath);
+
+        int count = 1;
+        string newFilePath;
+        do
+        {
+            newFilePath = Path.Combine(directory, $"{fileName} ({count}){extension}");
+            count++;
+        } while (File.Exists(newFilePath));
+
+        return newFilePath;
     }
 }

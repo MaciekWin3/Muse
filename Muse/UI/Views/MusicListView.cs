@@ -16,6 +16,8 @@ public sealed class MusicListView : FrameView
     private readonly IPlayerService playerService;
     private List<FileInfo> songs = [];
 
+    private PlayMode _playMode = PlayMode.None;
+
     public MusicListView(IUiEventBus uiEventBus, IPlayerService playerService, Pos x, Pos y, int bottomReserved)
     {
         this.uiEventBus = uiEventBus;
@@ -43,6 +45,11 @@ public sealed class MusicListView : FrameView
 
     private void RegisterBusHandlers()
     {
+        uiEventBus.Subscribe<PlayModeChanged>(msg =>
+        {
+            _playMode = msg.NewMode;
+        });
+
         uiEventBus.Subscribe<PlaylistUpdated>(msg =>
         {
             Application.Invoke(() =>
@@ -53,6 +60,7 @@ public sealed class MusicListView : FrameView
                 );
             });
         });
+
         uiEventBus.Subscribe<ChangeSongIndexRequested>(msg =>
         {
             var count = listView.Source.Count;
@@ -67,11 +75,29 @@ public sealed class MusicListView : FrameView
                 return;
             }
 
-            int newIndex = (currentIndex + msg.Offset) % count;
+            int newIndex = currentIndex + msg.Offset;
 
             if (newIndex < 0)
             {
-                newIndex += count;
+                if (_playMode == PlayMode.Repeat)
+                {
+                    newIndex = count - 1;
+                }
+                else
+                {
+                    return; // Don't wrap
+                }
+            }
+            else if (newIndex >= count)
+            {
+                if (_playMode == PlayMode.Repeat)
+                {
+                    newIndex = 0;
+                }
+                else
+                {
+                    return; // Don't wrap
+                }
             }
 
             listView.SelectedItem = newIndex;
@@ -93,6 +119,32 @@ public sealed class MusicListView : FrameView
             playerService.Play();
         });
 
+        uiEventBus.Subscribe<DeleteSongRequested>(_ =>
+        {
+            var selectedItem = listView.SelectedItem;
+            if (selectedItem is int selectedIndex && selectedIndex >= 0 && selectedIndex < songs.Count)
+            {
+                var song = songs[selectedIndex];
+                var result = MessageBox.Query(null, "Delete", $"Are you sure you want to delete {song.Name}?", "Yes", "No");
+                if (result == 0) // Yes
+                {
+                    try
+                    {
+                        if (File.Exists(song.FullName))
+                        {
+                            // If it's currently playing, we should probably stop it
+                            playerService.Stop();
+                            File.Delete(song.FullName);
+                            uiEventBus.Publish(new RefreshPlaylistsRequested());
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.ErrorQuery(null, "Error", $"Failed to delete file: {ex.Message}", "Ok");
+                    }
+                }
+            }
+        });
     }
 
     private void RegisterEvents()

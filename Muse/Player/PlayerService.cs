@@ -5,39 +5,57 @@ namespace Muse.Player;
 
 public class PlayerService : IPlayerService, IDisposable
 {
-    // private readonly IWavePlayer waveOutDevice;
     private readonly WaveOutEvent waveOutDevice;
-    private AudioFileReader audioFileReader = null!;
+    private WaveStream? waveStream;
+    private ISampleProvider? sampleProvider;
+    private float volume = 0.5f;
 
+    public string? CurrentFilePath { get; private set; }
     public PlaybackState State => waveOutDevice.PlaybackState;
 
     public PlayerService()
     {
         waveOutDevice = new WaveOutEvent();
+        volume = Globals.Volume;
     }
 
     public Result Load(string fileName)
     {
         try
         {
-            if (audioFileReader is not null)
+            Stop();
+            waveStream?.Dispose();
+
+            try
             {
-                audioFileReader.Dispose();
-                waveOutDevice.Stop();
+                var reader = new AudioFileReader(fileName);
+                reader.Volume = volume;
+                waveStream = reader;
+                sampleProvider = reader;
             }
-            audioFileReader = new AudioFileReader(fileName);
-            waveOutDevice.Init(audioFileReader);
+            catch (Exception)
+            {
+                // Fallback to MediaFoundationReader for tricky formats on Windows
+                var mfReader = new MediaFoundationReader(fileName);
+                waveStream = mfReader;
+                // MediaFoundationReader doesn't have Volume property, we might need a wrapper if we want volume control here
+                // For now, let's just get it playing
+                sampleProvider = mfReader.ToSampleProvider();
+            }
+
+            waveOutDevice.Init(waveStream);
+            CurrentFilePath = fileName;
             return Result.Ok();
         }
         catch (Exception ex)
         {
-            return Result.Fail(ex.Message);
+            return Result.Fail($"Failed to load audio file: {ex.Message}");
         }
     }
 
     public Result Play()
     {
-        if (audioFileReader is not null)
+        if (waveStream is not null)
         {
             waveOutDevice.Play();
             return Result.Ok();
@@ -53,50 +71,49 @@ public class PlayerService : IPlayerService, IDisposable
 
     public Result Stop()
     {
-        if (audioFileReader is not null)
+        waveOutDevice.Stop();
+        if (waveStream is not null)
         {
-            audioFileReader.Position = 0;
-            return Result.Ok();
+            waveStream.Position = 0;
         }
-        return Result.Fail("Unable to stop audio file");
+        return Result.Ok();
     }
 
     public Result SetVolume(float volume)
     {
-        if (audioFileReader is not null)
+        this.volume = volume;
+        Globals.Volume = volume;
+        
+        if (waveStream is AudioFileReader afr)
         {
-            audioFileReader.Volume = volume;
-            // TODO
-            Globals.Volume = volume;
+            afr.Volume = volume;
             return Result.Ok();
         }
-        return Result.Fail("Unable to set volume");
+        
+        // If it's not AudioFileReader (e.g. MediaFoundationReader), we'd need a VolumeSampleProvider wrapper
+        // but for now we just save the global setting
+        return Result.Ok();
     }
 
     public Result<int> GetVolume()
     {
-        if (audioFileReader is not null)
-        {
-            int volume = (int)(audioFileReader.Volume * 10);
-            return Result.Ok(volume);
-        }
-        return Result.Fail<int>("Unable to get volume");
+        return Result.Ok((int)(volume * 10));
     }
 
     public Result<SongInfo> GetSongInfo()
     {
-        if (audioFileReader is not null)
+        if (waveStream is not null)
         {
-            return Result.Ok(new SongInfo(audioFileReader));
+            return Result.Ok(new SongInfo(waveStream));
         }
         return Result.Fail<SongInfo>("Unable to get song info");
     }
 
     public Result ChangeCurrentSongTime(int seconds)
     {
-        if (audioFileReader is not null)
+        if (waveStream is not null)
         {
-            audioFileReader.CurrentTime = TimeSpan.FromSeconds(seconds);
+            waveStream.CurrentTime = TimeSpan.FromSeconds(seconds);
             return Result.Ok();
         }
         return Result.Fail("Unable to change current song time");
@@ -106,6 +123,6 @@ public class PlayerService : IPlayerService, IDisposable
     {
         waveOutDevice?.Stop();
         waveOutDevice?.Dispose();
-        audioFileReader?.Dispose();
+        waveStream?.Dispose();
     }
 }

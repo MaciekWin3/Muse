@@ -15,4 +15,26 @@ namespace Muse.UI.Bus
     public sealed record TrackProgress(string Name, int CurrentSeconds, int TotalSeconds);
     public sealed record PlaylistUpdated(System.Collections.Generic.IReadOnlyList<FileInfo> Songs);
     public sealed record RefreshPlaylistsRequested();
+    public sealed record ChangeThemeRequested(string ThemeName);
+
+    public enum PlayMode
+    {
+        None,
+        Repeat,
+        RepeatOne
+    }
+
+    public sealed record TogglePlayModeRequested();
+    public sealed record ShuffleToggleRequested();
+    public sealed record PlayModeChanged(PlayMode NewMode);
+    public sealed record ShuffleChanged(bool IsShuffle);
+
+    public enum AppMode
+    {
+        Search,
+        Shortcuts
+    }
+
+    public sealed record ChangeModeRequested(AppMode NewMode);
+    public sealed record DeleteSongRequested();
 }
