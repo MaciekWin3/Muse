@@ -36,8 +36,18 @@ public class PlayerService : IPlayerService, IDisposable
 
             if (track.Source == TrackSource.YouTube)
             {
-                var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId!);
-                var streamInfo = manifest.GetAudioOnlyStreams().GetWithHighestBitrate();
+                if (string.IsNullOrWhiteSpace(track.YouTubeId))
+                {
+                    return Result.Fail("YouTube track is missing a valid YouTube ID.");
+                }
+
+                var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId);
+                var audioOnlyStreams = manifest.GetAudioOnlyStreams();
+                var streamInfo = audioOnlyStreams.GetWithHighestBitrate();
+                if (streamInfo == null)
+                {
+                    return Result.Fail("No suitable audio-only stream was found for the YouTube video.");
+                }
                 urlToLoad = streamInfo.Url;
             }
 
