@@ -10,7 +10,7 @@ using Terminal.Gui.Views;
 
 namespace Muse.App;
 
-public class MuseApp : Runnable
+public class MuseApp : Toplevel
 {
     private readonly IPlayerService player;
     private readonly IYoutubeDownloadService youtubeDownloadService;
@@ -50,7 +50,7 @@ public class MuseApp : Runnable
 
     private void OnGlobalKeyDown(object? sender, Key key)
     {
-        if (Application.TopRunnableView is not MuseApp || Application.TopRunnableView?.MostFocused is TextField)
+        if (Application.Top is not MuseApp || Application.Top.MostFocused is TextField)
         {
             return;
         }
