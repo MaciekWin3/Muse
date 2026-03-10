@@ -69,7 +69,7 @@ public sealed class MusicListView : FrameView
                 return;
             }
 
-            int currentIndex = listView.SelectedItem ?? 0;
+            int currentIndex = listView.SelectedItem;
             int newIndex = currentIndex + msg.Offset;
 
             if (newIndex < 0)
@@ -99,7 +99,7 @@ public sealed class MusicListView : FrameView
 
             if (newIndex < 0 || newIndex >= songs.Count)
             {
-                MessageBox.ErrorQuery(null, "Error", "Unable to obtain song info.", "Ok");
+                MessageBox.ErrorQuery("Error", "Unable to obtain song info.", "Ok");
                 return;
             }
 
@@ -108,7 +108,7 @@ public sealed class MusicListView : FrameView
             var loadResult = await playerService.Load(track);
             if (!loadResult.Success)
             {
-                MessageBox.ErrorQuery(null, "Error", $"Cannot load file: {loadResult.Error}", "Ok");
+                MessageBox.ErrorQuery("Error", $"Cannot load file: {loadResult.Error}", "Ok");
                 return;
             }
             playerService.Play();
@@ -116,7 +116,7 @@ public sealed class MusicListView : FrameView
 
         uiEventBus.Subscribe<DeleteSongRequested>(_ =>
         {
-            int selectedIndex = listView.SelectedItem ?? -1;
+            int selectedIndex = listView.SelectedItem;
             if (selectedIndex >= 0 && selectedIndex < songs.Count)
             {
                 var track = songs[selectedIndex];
@@ -125,7 +125,7 @@ public sealed class MusicListView : FrameView
                     // Cannot delete remote track from disk
                     return;
                 }
-                var result = MessageBox.Query(null, "Delete", $"Are you sure you want to delete {track.Name}?", "Yes", "No");
+                var result = MessageBox.Query("Delete", $"Are you sure you want to delete {track.Name}?", "Yes", "No");
                 if (result == 0) // Yes
                 {
                     try
@@ -140,7 +140,7 @@ public sealed class MusicListView : FrameView
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.ErrorQuery(null, "Error", $"Failed to delete file: {ex.Message}", "Ok");
+                        MessageBox.ErrorQuery("Error", $"Failed to delete file: {ex.Message}", "Ok");
                     }
                 }
             }
@@ -150,9 +150,9 @@ public sealed class MusicListView : FrameView
 
     private void RegisterEvents()
     {
-        listView.Activated += (sender, e) =>
+        listView.OpenSelectedItem += (sender, e) =>
         {
-            int index = listView.SelectedItem ?? -1;
+            int index = e.Item;
             if (index >= 0 && index < songs.Count)
             {
                 uiEventBus.Publish(new SongSelected(songs[index]));

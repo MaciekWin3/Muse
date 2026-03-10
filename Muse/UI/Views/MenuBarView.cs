@@ -10,7 +10,7 @@ using Terminal.Gui.Views;
 
 namespace Muse.UI.Views;
 
-public class MenuBarView : MenuBar
+public class MenuBarView : MenuBarv2
 {
     private readonly IYoutubeDownloadService youtubeDownloadService;
     private readonly IUiEventBus uiEventBus;
@@ -66,24 +66,24 @@ public class MenuBarView : MenuBar
 
         Menus =
         [
-            new("File", new MenuItem[]
+            new("File", new MenuItemv2[]
             {
                 new("Open", "Open music folder", () => OpenFolder()),
                 new("Quit", "Quit application", () => Application.RequestStop()),
             }),
-            new("Options", new MenuItem[]
+            new("Options", new MenuItemv2[]
             {
-                new("Playlists", "Choose playlist", new Menu(GetPlaylistMenuItems())),
-                new("Theme", "Change color theme", new Menu(GetThemeMenuItems())),
+                new("Playlists", "Choose playlist", new Menuv2(GetPlaylistMenuItems())),
+                new("Theme", "Change color theme", new Menuv2(GetThemeMenuItems())),
                 new("Download", "Download from YouTube", () => ShowDownloadDialog()),
                 new("Stream Playlist", "Stream YouTube playlist", () => ShowStreamPlaylistDialog())
             }),
-            new("Playback", new MenuItem[]
+            new("Playback", new MenuItemv2[]
             {
                 new(repeatTitle, "Toggle repeat mode (R)", () => uiEventBus.Publish(new TogglePlayModeRequested())),
                 new(shuffleTitle, "Toggle shuffle mode (S)", () => uiEventBus.Publish(new ShuffleToggleRequested()))
             }),
-            new("Help", new MenuItem[]
+            new("Help", new MenuItemv2[]
             {
                 new("About", "About Muse", () => ShowAsciiArt()),
                 new("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
@@ -92,9 +92,9 @@ public class MenuBarView : MenuBar
         ];
     }
 
-    private MenuItem[] GetThemeMenuItems()
+    private MenuItemv2[] GetThemeMenuItems()
     {
-        return new MenuItem[]
+        return new MenuItemv2[]
         {
             new("Default", "Default theme", () => uiEventBus.Publish(new ChangeThemeRequested("Default"))),
             new("Dark", "Dark theme", () => uiEventBus.Publish(new ChangeThemeRequested("Dark"))),
@@ -107,9 +107,9 @@ public class MenuBarView : MenuBar
         };
     }
 
-    private MenuItem[] GetPlaylistMenuItems()
+    private MenuItemv2[] GetPlaylistMenuItems()
             {
-                var items = new List<MenuItem>
+                var items = new List<MenuItemv2>
                 {
                     new("All Songs", "Show all songs", () =>
                     {
@@ -125,7 +125,7 @@ public class MenuBarView : MenuBar
                         foreach (var dir in subDirs)
                         {
                             var dirName = Path.GetFileName(dir);
-                            items.Add(new MenuItem(dirName, $"Show songs from {dirName}", () =>
+                            items.Add(new MenuItemv2(dirName, $"Show songs from {dirName}", () =>
                             {
                                 Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(dir)));
                             }));
@@ -133,7 +133,7 @@ public class MenuBarView : MenuBar
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.ErrorQuery(null, "Error", $"Failed to list playlists: {ex.Message}", "Ok");
+                        MessageBox.ErrorQuery("Error", $"Failed to list playlists: {ex.Message}", "Ok");
                     }
                 }
         
@@ -169,11 +169,11 @@ public class MenuBarView : MenuBar
 
     private MainWindowView? FindMainWindow()
     {
-        if (Application.TopRunnableView is null)
+        if (Application.Top is null)
         {
             return null;
         }
-        return FindIn([.. Application.TopRunnableView.SubViews]);
+        return FindIn([.. Application.Top.SubViews]);
     }
 
     private MainWindowView? FindIn(IList<View> views)
@@ -205,7 +205,7 @@ public class MenuBarView : MenuBar
         sb.AppendLine(@" | |  | | |__| |____) | |____ ");
         sb.AppendLine(@" |_|  |_|\____/|_____/|______|");
         sb.AppendLine();
-        MessageBox.Query(null, 50, 15, "About", sb.ToString(), "Ok");
+        MessageBox.Query(50, 15, "About", sb.ToString(), "Ok");
     }
 
     private static void ShowShortcuts()
@@ -222,7 +222,7 @@ public class MenuBarView : MenuBar
         sb.AppendLine("r  - Repeat mode");
         sb.AppendLine("s  - Shuffle mode");
 
-        MessageBox.Query(null, 50, 15, "Shortcuts", sb.ToString(), "Ok");
+        MessageBox.Query(50, 15, "Shortcuts", sb.ToString(), "Ok");
     }
 
     private void ShowDownloadDialog()
@@ -273,16 +273,15 @@ public class MenuBarView : MenuBar
             playlists.AddRange(subDirs);
         }
 
-        var defaultPlaylist = playlists.Count > 0 ? playlists[0] : string.Empty;
-        var playlistComboBox = new DropDownList()
+        var playlistComboBox = new ComboBox()
         {
             X = 1,
             Y = Pos.Bottom(playlistLabel),
             Width = Dim.Fill()! - 5,
-            Source = new ListWrapper<string>(new ObservableCollection<string>(playlists)),
-            ReadOnly = true,
-            Text = defaultPlaylist
+            Height = 4,
+            Source = new ListWrapper<string>(new ObservableCollection<string>(playlists))
         };
+        playlistComboBox.SelectedItem = 0;
 
         var progressLabel = new Label()
         {
@@ -322,7 +321,7 @@ public class MenuBarView : MenuBar
             // Validation
             if (string.IsNullOrWhiteSpace(urlTextField.Text?.ToString()))
             {
-                Application.Invoke(() => MessageBox.ErrorQuery(null, "Error", "URL cannot be empty", "Ok"));
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", "URL cannot be empty", "Ok"));
                 return;
             }
 
@@ -335,8 +334,10 @@ public class MenuBarView : MenuBar
             var songName = nameTextField.Text?.ToString().Trim() ?? string.Empty;
             
             string relativePath = "";
-            var selectedPlaylist = playlistComboBox.Text?.ToString()?.Trim() ?? "";
-            relativePath = selectedPlaylist == defaultPlaylist ? "" : selectedPlaylist;
+            if (playlistComboBox.SelectedItem >= 0 && playlistComboBox.SelectedItem < playlists.Count)
+            {
+                relativePath = playlistComboBox.SelectedItem == 0 ? "" : playlists[playlistComboBox.SelectedItem];
+            }
 
             var progress = new Progress<double>(p =>
             {
@@ -358,7 +359,7 @@ public class MenuBarView : MenuBar
             if (result.IsFailure)
             {
                 progressLabel.Visible = false;
-                Application.Invoke(() => MessageBox.ErrorQuery(null, "Error", result.Error, "Ok"));
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", result.Error, "Ok"));
             }
             else
             {
@@ -428,7 +429,7 @@ public class MenuBarView : MenuBar
             var url = urlTextField.Text?.ToString().Trim();
             if (string.IsNullOrWhiteSpace(url))
             {
-                Application.Invoke(() => MessageBox.ErrorQuery(null, "Error", "URL cannot be empty", "Ok"));
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", "URL cannot be empty", "Ok"));
                 return;
             }
 
