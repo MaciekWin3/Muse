@@ -1,28 +1,41 @@
-﻿using Muse.Utils;
-using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
+using Muse.Utils;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
+using LibVLCSharp.Shared;
 
 namespace Muse.Player;
 
 public class PlayerService : IPlayerService, IDisposable
 {
-    private readonly WaveOutEvent waveOutDevice;
-    private WaveStream? waveStream;
-    private ISampleProvider? sampleProvider;
-    private VolumeSampleProvider? volumeProvider;
-    private float volume = 0.5f;
+    private readonly LibVLC _libVLC;
+    private MediaPlayer? _mediaPlayer;
+    private float _volume = 0.5f;
     private readonly YoutubeClient youtubeClient = new();
 
     public Track? CurrentTrack { get; private set; }
     public string? CurrentFilePath { get; private set; }
-    public PlaybackState State => waveOutDevice.PlaybackState;
+    
+    public PlaybackState State
+    {
+        get
+        {
+            if (_mediaPlayer == null) return PlaybackState.Stopped;
+            return _mediaPlayer.State switch
+            {
+                VLCState.Playing => PlaybackState.Playing,
+                VLCState.Paused => PlaybackState.Paused,
+                _ => PlaybackState.Stopped
+            };
+        }
+    }
 
     public PlayerService()
     {
-        waveOutDevice = new WaveOutEvent();
-        volume = Globals.Volume;
+        Core.Initialize();
+        _libVLC = new LibVLC();
+        _volume = Globals.Volume;
+        _mediaPlayer = new MediaPlayer(_libVLC);
+        _mediaPlayer.Volume = (int)(_volume * 100);
     }
 
     public async Task<Result> Load(Track track)
@@ -30,7 +43,6 @@ public class PlayerService : IPlayerService, IDisposable
         try
         {
             Stop();
-            waveStream?.Dispose();
 
             string urlToLoad = track.Path;
 
@@ -51,35 +63,11 @@ public class PlayerService : IPlayerService, IDisposable
                 urlToLoad = streamInfo.Url;
             }
 
-            try
-            {
-                // AudioFileReader can load from URL as well if the format is supported,
-                // but for YouTube streams MediaFoundationReader is safer and more robust for URLs.
-                if (track.Source == TrackSource.YouTube)
-                {
-                    var mfReader = new MediaFoundationReader(urlToLoad);
-                    waveStream = mfReader;
-                    sampleProvider = mfReader.ToSampleProvider();
-                }
-                else
-                {
-                    var reader = new AudioFileReader(urlToLoad);
-                    waveStream = reader;
-                    sampleProvider = reader;
-                }
-            }
-            catch (Exception)
-            {
-                // Fallback to MediaFoundationReader for tricky formats or URLs
-                var mfReader = new MediaFoundationReader(urlToLoad);
-                waveStream = mfReader;
-                sampleProvider = mfReader.ToSampleProvider();
-            }
+            var media = track.Source == TrackSource.YouTube 
+                ? new Media(_libVLC, new Uri(urlToLoad))
+                : new Media(_libVLC, urlToLoad, FromType.FromPath);
 
-            volumeProvider = new VolumeSampleProvider(sampleProvider);
-            volumeProvider.Volume = volume;
-
-            waveOutDevice.Init(volumeProvider);
+            _mediaPlayer!.Media = media;
             CurrentTrack = track;
             CurrentFilePath = track.Path;
             return Result.Ok();
@@ -92,9 +80,9 @@ public class PlayerService : IPlayerService, IDisposable
 
     public Result Play()
     {
-        if (waveStream is not null)
+        if (_mediaPlayer is not null && _mediaPlayer.Media is not null)
         {
-            waveOutDevice.Play();
+            _mediaPlayer.Play();
             return Result.Ok();
         }
         return Result.Fail("Unable to play audio file");
@@ -102,33 +90,31 @@ public class PlayerService : IPlayerService, IDisposable
 
     public Result Pause()
     {
-        waveOutDevice.Pause();
-        return Result.Ok();
+        if (_mediaPlayer is not null)
+        {
+            _mediaPlayer.Pause();
+            return Result.Ok();
+        }
+        return Result.Fail("MediaPlayer is not initialized");
     }
 
     public Result Stop()
     {
-        waveOutDevice.Stop();
-        if (waveStream is not null)
+        if (_mediaPlayer is not null)
         {
-            waveStream.Position = 0;
+            _mediaPlayer.Stop();
         }
         return Result.Ok();
     }
 
     public Result SetVolume(float volume)
     {
-        this.volume = volume;
+        _volume = volume;
         Globals.Volume = volume;
         
-        if (volumeProvider != null)
+        if (_mediaPlayer != null)
         {
-            volumeProvider.Volume = volume;
-        }
-
-        if (waveStream is AudioFileReader afr)
-        {
-            afr.Volume = volume;
+            _mediaPlayer.Volume = (int)(volume * 100);
         }
         
         return Result.Ok();
@@ -136,27 +122,35 @@ public class PlayerService : IPlayerService, IDisposable
 
     public Result<int> GetVolume()
     {
-        return Result.Ok((int)(volume * 10));
+        return Result.Ok((int)(_volume * 10));
     }
 
     public Result<SongInfo> GetSongInfo()
     {
-        if (waveStream is not null)
+        if (_mediaPlayer is not null && _mediaPlayer.Media is not null)
         {
-            if (CurrentTrack != null)
-            {
-                return Result.Ok(new SongInfo(waveStream, CurrentTrack.Name));
-            }
-            return Result.Ok(new SongInfo(waveStream));
+            var length = _mediaPlayer.Length; // in ms
+            var time = _mediaPlayer.Time; // in ms
+            
+            var totalTime = length > 0 ? (int)(length / 1000) : 0;
+            var currentTime = time > 0 ? (int)(time / 1000) : 0;
+            
+            // if streaming, length might be -1 or 0 initially
+            if (length == -1) totalTime = 0;
+            if (time == -1) currentTime = 0;
+            
+            string name = CurrentTrack != null ? CurrentTrack.Name : "Unknown";
+
+            return Result.Ok(new SongInfo(name, totalTime, currentTime));
         }
         return Result.Fail<SongInfo>("Unable to get song info");
     }
 
     public Result ChangeCurrentSongTime(int seconds)
     {
-        if (waveStream is not null)
+        if (_mediaPlayer is not null)
         {
-            waveStream.CurrentTime = TimeSpan.FromSeconds(seconds);
+            _mediaPlayer.Time = seconds * 1000;
             return Result.Ok();
         }
         return Result.Fail("Unable to change current song time");
@@ -164,8 +158,8 @@ public class PlayerService : IPlayerService, IDisposable
 
     public void Dispose()
     {
-        waveOutDevice?.Stop();
-        waveOutDevice?.Dispose();
-        waveStream?.Dispose();
+        _mediaPlayer?.Stop();
+        _mediaPlayer?.Dispose();
+        _libVLC?.Dispose();
     }
 }

@@ -17,7 +17,10 @@ public static class MusicListHelper
 
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var file in directory.GetFiles("*.mp*", searchOption).OrderBy(f => f.Name).ThenBy(f => f.FullName))
+        var extensions = new[] { "*.mp3", "*.mp4", "*.m4a", "*.webm" };
+        var files = extensions.SelectMany(ext => directory.GetFiles(ext, searchOption));
+
+        foreach (var file in files.OrderBy(f => f.Name).ThenBy(f => f.FullName))
         {
             if (seenPaths.Add(file.FullName))
             {

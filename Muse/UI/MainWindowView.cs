@@ -2,7 +2,6 @@ using Muse.Player;
 using Muse.UI.Bus;
 using Muse.UI.Views;
 using Muse.Utils;
-using NAudio.Wave;
 using System.Threading;
 using YoutubeExplode;
 using YoutubeExplode.Playlists;
@@ -75,7 +74,11 @@ public sealed class MainWindowView : Window
             if (!loadResult.Success)
             {
                 uiEventBus.Publish(new PauseRequested());
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", $"Cannot load track: {loadResult.Error}", "OK"));
+                Application.Invoke(() => 
+                {
+                    MessageBox.ErrorQuery("Error", $"Cannot load track: {loadResult.Error}", "OK");
+                    uiEventBus.Publish(new NextSongRequested());
+                });
                 return;
             }
             uiEventBus.Publish(new PlayRequested());
