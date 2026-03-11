@@ -32,7 +32,7 @@ public class PlayerService : IPlayerService, IDisposable
     public PlayerService()
     {
         Core.Initialize();
-        _libVLC = new LibVLC();
+        _libVLC = new LibVLC("--no-video", "--quiet", "--no-stats");
         _volume = Globals.Volume;
         _mediaPlayer = new MediaPlayer(_libVLC);
         _mediaPlayer.Volume = (int)(_volume * 100);

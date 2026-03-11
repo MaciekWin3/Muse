@@ -1,4 +1,4 @@
-﻿using Muse.Player;
+using Muse.Player;
 using Muse.UI.Bus;
 using Terminal.Gui.App;
 using Terminal.Gui.Drawing;
@@ -13,13 +13,6 @@ public sealed class ProgressBarView : ProgressBar
     private readonly IUiEventBus uiEventBus;
     private readonly IPlayerService player;
 
-    private const int ProgressBarHeight = 3;
-    private const int RefreshIntervalMs = 16; // ~60 FPS
-
-    private int currentSeconds;
-    private int totalSeconds;
-    private string? currentSongName;
-
     public ProgressBarView(IUiEventBus uiEventBus, IPlayerService player, Pos x, Pos y)
     {
         this.uiEventBus = uiEventBus;
@@ -27,7 +20,7 @@ public sealed class ProgressBarView : ProgressBar
 
         X = x;
         Y = y;
-        Height = ProgressBarHeight;
+        Height = 3;
         Width = Dim.Fill();
 
         Title = "Progress";
@@ -37,16 +30,25 @@ public sealed class ProgressBarView : ProgressBar
 
         RegisterBusHandlers();
         RegisterMouseHandler();
-        StartTimer();
     }
 
     private void RegisterBusHandlers()
     {
         uiEventBus.Subscribe<TrackProgress>(msg =>
         {
-            currentSongName = msg.Name;
-            currentSeconds = msg.CurrentSeconds;
-            totalSeconds = msg.TotalSeconds;
+            Application.Invoke(() =>
+            {
+                if (msg.TotalSeconds > 0)
+                {
+                    Fraction = (float)msg.CurrentSeconds / msg.TotalSeconds;
+                }
+                else
+                {
+                    Fraction = 0;
+                }
+
+                Title = $"Playing: {msg.Name}{FormatTime(msg.CurrentSeconds, msg.TotalSeconds)}";
+            });
         });
     }
 
@@ -54,7 +56,7 @@ public sealed class ProgressBarView : ProgressBar
     {
         Application.Mouse.MouseEvent += (sender, e) =>
         {
-            if (e.View is not ProgressBar)
+            if (e.View != this)
                 return;
 
             if (e.Flags == MouseFlags.Button1Clicked)
@@ -73,28 +75,6 @@ public sealed class ProgressBarView : ProgressBar
                 }
             }
         };
-    }
-
-    private void StartTimer()
-    {
-        Application.AddTimeout(TimeSpan.FromMilliseconds(RefreshIntervalMs), () =>
-        {
-            UpdateProgress();
-            return true;
-        });
-    }
-
-    private void UpdateProgress()
-    {
-        if (totalSeconds > 0)
-        {
-            Fraction = (float)currentSeconds / totalSeconds;
-        }
-
-        if (currentSongName is not null)
-        {
-            Title = $"Playing: {currentSongName}{FormatTime(currentSeconds, totalSeconds)}";
-        }
     }
 
     private static string FormatTime(int current, int total)

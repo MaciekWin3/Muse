@@ -15,6 +15,7 @@ public sealed class MusicListView : FrameView
     private readonly ListView listView;
     private readonly IPlayerService playerService;
     private List<Track> songs = [];
+    private readonly ObservableCollection<string> songNames = [];
 
     private PlayMode _playMode = PlayMode.None;
 
@@ -34,7 +35,7 @@ public sealed class MusicListView : FrameView
         {
             Width = Dim.Fill(),
             Height = Dim.Fill(),
-            Source = new ListWrapper<string>([])
+            Source = new ListWrapper<string>(songNames)
         };
 
         Add(listView);
@@ -55,9 +56,11 @@ public sealed class MusicListView : FrameView
             Application.Invoke(() =>
             {
                 songs = [.. msg.Songs];
-                listView.SetSource(
-                    new ObservableCollection<string>(songs.Select(s => s.Name))
-                );
+                songNames.Clear();
+                foreach (var s in songs)
+                {
+                    songNames.Add(s.Name);
+                }
             });
         });
         uiEventBus.Subscribe<ChangeSongIndexRequested>(async msg =>
