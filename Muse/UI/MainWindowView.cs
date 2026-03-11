@@ -159,7 +159,7 @@ public sealed class MainWindowView : Window
 
         uiEventBus.Subscribe<ReloadPlaylist>(msg =>
         {
-            ReloadPlaylist(msg.DirectoryPath);
+            ReloadPlaylist(msg.DirectoryPath, msg.Recursive);
             uiEventBus.Publish(new PlaylistUpdated(Playlist));
         });
 
@@ -377,7 +377,7 @@ public sealed class MainWindowView : Window
         return $" {cm}:{cs:00} / {tm}:{ts:00}";
     }
 
-    public void ReloadPlaylist(string path)
+    public void ReloadPlaylist(string path, bool recursive = true)
     {
         if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
         {
@@ -387,7 +387,7 @@ public sealed class MainWindowView : Window
         _currentDirectory = path;
         watcher.Path = Globals.MuseDirectory;
 
-        Playlist = MusicListHelper.GetMusicList(path).Select(Track.FromFileInfo).ToList();
+        Playlist = MusicListHelper.GetMusicList(path, recursive).Select(Track.FromFileInfo).ToList();
         NumberOfSongs = Playlist.Count;
     }
 

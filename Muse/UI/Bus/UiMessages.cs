@@ -12,7 +12,7 @@ namespace Muse.UI.Bus
     public sealed record NextSongRequested();
     public sealed record VolumeChanged(float Volume);
     public sealed record MuteToggle(bool IsMuted);
-    public sealed record ReloadPlaylist(string DirectoryPath);
+    public sealed record ReloadPlaylist(string DirectoryPath, bool Recursive = false);
     public sealed record LoadYoutubePlaylist(string PlaylistUrl);
     public sealed record ChangeSongIndexRequested(int Offset);
     public sealed record TrackProgress(string Name, int CurrentSeconds, int TotalSeconds);

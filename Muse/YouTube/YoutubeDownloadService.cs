@@ -3,6 +3,7 @@ using Muse.YouTube;
 using YoutubeExplode;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
+using YoutubeExplode.Playlists;
 
 public class YoutubeDownloadService : IYoutubeDownloadService
 {
@@ -17,11 +18,6 @@ public class YoutubeDownloadService : IYoutubeDownloadService
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(Globals.MuseDirectory))
-            {
-                return Result.Fail("MUSE_DIRECTORY is not set.");
-            }
-
             var videoId = VideoId.TryParse(link);
             if (videoId == null)
             {
@@ -36,6 +32,56 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             catch (Exception ex)
             {
                 return Result.Fail($"Failed to retrieve video metadata for {videoId.Value}: {ex.Message}");
+            }
+
+            return await DownloadVideoInternalAsync(video, name, relativePath, progress);
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail($"{ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    public async Task<Result> DownloadPlaylistAsync(string link, string relativePath = "", IProgress<int>? progress = null)
+    {
+        try
+        {
+            var playlistId = PlaylistId.TryParse(link);
+            if (playlistId == null)
+            {
+                return Result.Fail($"Failed to parse Playlist ID from link: {link}");
+            }
+
+            // Fetch playlist videos
+            var videos = youtubeClient.Playlists.GetVideosAsync(playlistId.Value);
+            
+            int current = 0;
+            progress?.Report(current);
+            await foreach (var video in videos)
+            {
+                var result = await DownloadVideoInternalAsync(video, null, relativePath, null);
+                if (result.Success)
+                {
+                    current++;
+                    progress?.Report(current);
+                }
+            }
+
+            return Result.Ok();
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail($"{ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private async Task<Result> DownloadVideoInternalAsync(IVideo video, string? name, string relativePath, IProgress<double>? progress)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Globals.MuseDirectory))
+            {
+                return Result.Fail("MUSE_DIRECTORY is not set.");
             }
 
             string baseDirectory = Path.GetFullPath(Globals.MuseDirectory);
@@ -79,11 +125,11 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             StreamManifest manifest;
             try
             {
-                manifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoId.Value);
+                manifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id);
             }
             catch (Exception ex)
             {
-                return Result.Fail($"Failed to retrieve stream manifest for {videoId.Value}: {ex.Message}");
+                return Result.Fail($"Failed to retrieve stream manifest for {video.Id}: {ex.Message}");
             }
 
             var audioStream = manifest
@@ -100,7 +146,9 @@ public class YoutubeDownloadService : IYoutubeDownloadService
 
             string fileName = string.IsNullOrWhiteSpace(name) ? video.Title : name;
             fileName = SanitizeFileName(fileName);
-            string extension = audioStream.Container.Name;
+            
+            // Use .m4a extension for MP4 audio-only streams, as it's more widely recognized as audio.
+            string extension = audioStream.Container == Container.Mp4 ? "m4a" : audioStream.Container.Name;
 
             string outputPath = Path.Combine(targetDirectory, $"{fileName}.{extension}");
             outputPath = GetUniqueFilePath(outputPath);
