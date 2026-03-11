@@ -2,13 +2,13 @@
   <PropertyGroup>
 	<PackageId>MusePlayer</PackageId>
 	<OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+	<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+	<LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NoWarn>NU1608</NoWarn>
 	<Authors>Maciej Winnik</Authors>
-	<Description>Terminal music player</Description>
-	<PackageVersion>0.2.8</PackageVersion>
+	<PackageVersion>0.2.11</PackageVersion>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<ProjectURL>https://github.com/MaciekWin3/Muse</ProjectURL>
 	<RepositoryURL>https://github.com/MaciekWin3/Muse</RepositoryURL>
@@ -31,7 +31,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
     <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="Terminal.Gui" Version="2.0.0-develop.5125" />
+    <PackageReference Include="Terminal.Gui" Version="2.0.0-develop.4636" />
     <PackageReference Include="YoutubeExplode" Version="6.5.7" />
   </ItemGroup>
 </Project>
