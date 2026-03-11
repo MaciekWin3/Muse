@@ -6,6 +6,7 @@ using System.Threading;
 using YoutubeExplode;
 using YoutubeExplode.Playlists;
 using Terminal.Gui.App;
+using Terminal.Gui.Drawing;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -48,6 +49,12 @@ public sealed class MainWindowView : Window
         RegisterStyles();
 
         uiEventBus.Publish(new PlaylistUpdated(Playlist));
+        
+        // Single persistent timer for tracking playback
+        Application.AddTimeout(TimeSpan.FromMilliseconds(200), () =>
+        {
+            return TrackSong();
+        });
     }
 
     private void RegisterBusHandlers()
@@ -84,14 +91,7 @@ public sealed class MainWindowView : Window
             uiEventBus.Publish(new PlayRequested());
             player.SetVolume(Globals.Volume);
             var result = player.Play();
-            if (result.Success)
-            {
-                Application.AddTimeout(TimeSpan.FromMilliseconds(100), () =>
-                {
-                    return TrackSong();
-                });
-            }
-            else
+            if (!result.Success)
             {
                 Application.Invoke(() => MessageBox.ErrorQuery("Error", result.Error, "OK"));
             }
@@ -115,15 +115,7 @@ public sealed class MainWindowView : Window
             else
             {
                 uiEventBus.Publish(new PlayRequested());
-                var res = player.Play();
-                if (res.Success)
-                {
-                    Application.AddTimeout(TimeSpan.FromMilliseconds(100), () =>
-                    {
-                        TrackSong();
-                        return true;
-                    });
-                }
+                player.Play();
             }
         });
 
@@ -198,19 +190,6 @@ public sealed class MainWindowView : Window
             }
         });
 
-        uiEventBus.Subscribe<TrackProgress>(msg =>
-        {
-            Application.Invoke(() =>
-            {
-                if (progressBarView is not null)
-                {
-                    progressBarView.Fraction = (float)msg.CurrentSeconds / Math.Max(1, msg.TotalSeconds);
-                    progressBarView.Title = $"Playing: {msg.Name} {FormatTime(msg.CurrentSeconds, msg.TotalSeconds)}";
-                }
-            });
-        });
-
-
         uiEventBus.Subscribe<PreviousSongRequested>(_ =>
         {
             if (_isShuffle && Playlist.Count > 0)
@@ -276,7 +255,8 @@ public sealed class MainWindowView : Window
 
     public void RegisterControls()
     {
-        controlPanelView = new ControlPanelView(uiEventBus, 0, Pos.Bottom(this) - 6);
+        // Each sub-component has its own border.
+        controlPanelView = new ControlPanelView(uiEventBus, 0, Pos.AnchorEnd(Globals.BUTTONS_FRAME_HEIGHT));
         Add(controlPanelView);
 
         progressBarView = new ProgressBarView(uiEventBus, player, 0, Pos.Top(controlPanelView) - Globals.PROGRESS_BAR_HEIGHT);
@@ -285,7 +265,9 @@ public sealed class MainWindowView : Window
         volumeSlider = new VolumeView(uiEventBus, 0, Pos.Top(progressBarView) - Globals.VOLUME_SLIDER_HEIGHT);
         Add(volumeSlider);
 
-        musicListView = new MusicListView(uiEventBus, player, 0, 0, CalculateReservedBottomSpace());
+        musicListView = new MusicListView(uiEventBus, player, 0, 0, 0);
+        musicListView.Width = Dim.Fill();
+        musicListView.Height = Dim.Fill() - (Globals.BUTTONS_FRAME_HEIGHT + Globals.PROGRESS_BAR_HEIGHT + Globals.VOLUME_SLIDER_HEIGHT);
         Add(musicListView);
 
         watcher.Path = Globals.MuseDirectory;
@@ -302,27 +284,10 @@ public sealed class MainWindowView : Window
     public void RegisterStyles()
     {
         X = 0;
-        Y = 1;
+        Y = 1; // Below MenuBar
         Width = Dim.Fill();
-        Height = Dim.Fill() - 2;
-    }
-
-    private int CalculateReservedBottomSpace()
-    {
-        int bottomReserved = 0;
-        if (volumeSlider is not null)
-        {
-            bottomReserved += Globals.VOLUME_SLIDER_HEIGHT;
-        }
-        if (progressBarView is not null)
-        {
-            bottomReserved += Globals.PROGRESS_BAR_HEIGHT;
-        }
-        if (controlPanelView is not null)
-        {
-            bottomReserved += Globals.BUTTONS_FRAME_HEIGHT;
-        }
-        return bottomReserved;
+        Height = Dim.Fill() - 1; // Leave 1 row for StatusBar
+        BorderStyle = LineStyle.None; // Hide the border to avoid nested lines
     }
 
     private bool TrackSong()
@@ -330,18 +295,19 @@ public sealed class MainWindowView : Window
         var songInfoResult = player.GetSongInfo();
         if (!songInfoResult.Success)
         {
-            progressBarView.Text = songInfoResult.Error;
             return true;
         }
 
         var info = songInfoResult.Value;
-        uiEventBus.Publish(new TrackProgress(info.Name, info.CurrentTime, info.TotalTimeInSeconds));
+        
+        // Notify the bus only if actually playing/paused
+        if (player.State != PlaybackState.Stopped)
+        {
+            uiEventBus.Publish(new TrackProgress(info.Name, info.CurrentTime, info.TotalTimeInSeconds));
+        }
 
-        progressBarView.Fraction = (float)info.CurrentTime / info.TotalTimeInSeconds;
-
-        progressBarView.Title = $"Playing: {info.Name}{FormatTime(info.CurrentTime, info.TotalTimeInSeconds)}";
-
-        if (info.CurrentTime >= info.TotalTimeInSeconds && !_isTransitioning)
+        if (info.CurrentTime >= info.TotalTimeInSeconds && info.TotalTimeInSeconds > 0 && 
+            player.State == PlaybackState.Playing && !_isTransitioning)
         {
             if (_playMode == PlayMode.RepeatOne)
             {
@@ -358,13 +324,12 @@ public sealed class MainWindowView : Window
                 {
                     uiEventBus.Publish(new PauseRequested());
                     player.Stop();
-                    return false;
+                    return true;
                 }
             }
 
             _isTransitioning = true;
             uiEventBus.Publish(new NextSongRequested());
-            return false; // Stop this timer, new song will start its own
         }
 
         return true;
