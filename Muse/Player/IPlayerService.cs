@@ -1,5 +1,4 @@
 using Muse.Utils;
-using NAudio.Wave;
 
 namespace Muse.Player;
 

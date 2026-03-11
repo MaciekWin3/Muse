@@ -4,6 +4,7 @@ using YoutubeExplode;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
 using YoutubeExplode.Playlists;
+using LibVLCSharp.Shared;
 
 public class YoutubeDownloadService : IYoutubeDownloadService
 {
@@ -12,6 +13,11 @@ public class YoutubeDownloadService : IYoutubeDownloadService
     public YoutubeDownloadService()
     {
         youtubeClient = new YoutubeClient();
+        try
+        {
+            Core.Initialize();
+        }
+        catch { }
     }
 
     public async Task<Result> DownloadAsync(string link, string? name = null, string relativePath = "", IProgress<double>? progress = null)
@@ -77,6 +83,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
 
     private async Task<Result> DownloadVideoInternalAsync(IVideo video, string? name, string relativePath, IProgress<double>? progress)
     {
+        string? outputPath = null;
         try
         {
             if (string.IsNullOrWhiteSpace(Globals.MuseDirectory))
@@ -150,7 +157,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             // Use .m4a extension for MP4 audio-only streams, as it's more widely recognized as audio.
             string extension = audioStream.Container == Container.Mp4 ? "m4a" : audioStream.Container.Name;
 
-            string outputPath = Path.Combine(targetDirectory, $"{fileName}.{extension}");
+            outputPath = Path.Combine(targetDirectory, $"{fileName}.{extension}");
             outputPath = GetUniqueFilePath(outputPath);
 
             try
@@ -162,13 +169,66 @@ public class YoutubeDownloadService : IYoutubeDownloadService
                 return Result.Fail($"Failed to download audio stream to {outputPath}: {ex.Message}");
             }
 
+            // Validation: Ensure the file is playable
+            var validationResult = ValidateAudioFile(outputPath);
+            if (validationResult.IsFailure)
+            {
+                try
+                {
+                    if (File.Exists(outputPath))
+                    {
+                        File.Delete(outputPath);
+                    }
+                }
+                catch
+                {
+                    // Ignore deletion errors
+                }
+                return validationResult;
+            }
+
             return Result.Ok();
         }
         catch (Exception ex)
         {
+            if (outputPath != null && File.Exists(outputPath))
+            {
+                try { File.Delete(outputPath); } catch { }
+            }
             return Result.Fail($"{ex.GetType().Name}: {ex.Message}");
         }
     }
+
+    private static Result ValidateAudioFile(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            return Result.Fail("Downloaded file does not exist.");
+        }
+
+        if (new FileInfo(filePath).Length == 0)
+        {
+            return Result.Fail("Downloaded file is empty.");
+        }
+
+        try
+        {
+            using var libvlc = new LibVLC();
+            using var media = new Media(libvlc, filePath, FromType.FromPath);
+            media.Parse(MediaParseOptions.ParseLocal);
+            if (media.Duration <= 0)
+            {
+                return Result.Fail("Downloaded file has zero duration.");
+            }
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail($"Downloaded file is not a valid audio file or is corrupted: {ex.Message}");
+        }
+
+        return Result.Ok();
+    }
+
 
     private static string SanitizeFileName(string fileName)
     {
