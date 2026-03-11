@@ -2,12 +2,11 @@
   <PropertyGroup>
 	<PackageId>MusePlayer</PackageId>
 	<OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+	<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NoWarn>NU1608</NoWarn>
 	<Authors>Maciej Winnik</Authors>
-	<Description>Terminal music player</Description>
 	<PackageVersion>0.2.9</PackageVersion>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<ProjectURL>https://github.com/MaciekWin3/Muse</ProjectURL>
