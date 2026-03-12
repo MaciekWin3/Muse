@@ -11,6 +11,8 @@ public class PlayerService : IPlayerService, IDisposable
     private MediaPlayer? _mediaPlayer;
     private float _volume = 0.5f;
     private readonly YoutubeClient youtubeClient = new();
+    private CancellationTokenSource? _loadCts;
+    private readonly SemaphoreSlim _loadSemaphore = new(1, 1);
 
     public Track? CurrentTrack { get; private set; }
     public string? CurrentFilePath { get; private set; }
@@ -40,6 +42,11 @@ public class PlayerService : IPlayerService, IDisposable
 
     public async Task<Result> Load(Track track)
     {
+        _loadCts?.Cancel();
+        _loadCts = new CancellationTokenSource();
+        var token = _loadCts.Token;
+
+        await _loadSemaphore.WaitAsync(token);
         try
         {
             Stop();
@@ -59,7 +66,7 @@ public class PlayerService : IPlayerService, IDisposable
                 }
                 else
                 {
-                    var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId);
+                    var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId, token);
                     var audioOnlyStreams = manifest.GetAudioOnlyStreams();
                     var streamInfo = audioOnlyStreams.GetWithHighestBitrate();
                     if (streamInfo == null)
@@ -71,6 +78,8 @@ public class PlayerService : IPlayerService, IDisposable
                 }
             }
 
+            token.ThrowIfCancellationRequested();
+
             var media = track.Source == TrackSource.YouTube 
                 ? new Media(_libVLC, new Uri(urlToLoad))
                 : new Media(_libVLC, urlToLoad, FromType.FromPath);
@@ -80,23 +89,35 @@ public class PlayerService : IPlayerService, IDisposable
             CurrentFilePath = track.Path;
             return Result.Ok();
         }
+        catch (OperationCanceledException)
+        {
+            return Result.Fail("Loading was canceled.");
+        }
         catch (Exception ex)
         {
             return Result.Fail($"Failed to load audio: {ex.Message}");
+        }
+        finally
+        {
+            _loadSemaphore.Release();
         }
     }
 
     public async Task PreCacheNextSongs(IEnumerable<Track> tracks)
     {
+        var token = _loadCts?.Token ?? CancellationToken.None;
+
         foreach (var track in tracks)
         {
+            if (token.IsCancellationRequested) break;
+
             if (track.Source == TrackSource.YouTube && 
                 !string.IsNullOrEmpty(track.YouTubeId) && 
                 string.IsNullOrEmpty(track.StreamUrl))
             {
                 try
                 {
-                    var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId);
+                    var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId, token);
                     var audioOnlyStreams = manifest.GetAudioOnlyStreams();
                     var streamInfo = audioOnlyStreams.GetWithHighestBitrate();
                     if (streamInfo != null)
@@ -106,7 +127,7 @@ public class PlayerService : IPlayerService, IDisposable
                 }
                 catch
                 {
-                    // Ignore errors during pre-caching
+                    // Ignore errors or cancellations during pre-caching
                 }
             }
         }
