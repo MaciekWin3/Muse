@@ -14,5 +14,6 @@ public interface IPlayerService
     Result SetVolume(float volume);
     Result<SongInfo> GetSongInfo();
     Result ChangeCurrentSongTime(int seconds);
+    Task PreCacheNextSongs(IEnumerable<Track> tracks);
     void Dispose();
 }

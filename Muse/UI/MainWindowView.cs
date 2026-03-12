@@ -95,6 +95,10 @@ public sealed class MainWindowView : Window
             {
                 Application.Invoke(() => MessageBox.ErrorQuery("Error", result.Error, "OK"));
             }
+            else
+            {
+                _ = Task.Run(() => PreCacheNextSongs());
+            }
         });
 
         uiEventBus.Subscribe<TogglePlayRequested>(_ =>
@@ -182,6 +186,7 @@ public sealed class MainWindowView : Window
                     Playlist = newTracks;
                     NumberOfSongs = Playlist.Count;
                     uiEventBus.Publish(new PlaylistUpdated(Playlist));
+                    _ = Task.Run(() => PreCacheNextSongs());
                 });
             }
             catch (Exception ex)
@@ -357,6 +362,59 @@ public sealed class MainWindowView : Window
 
         Playlist = MusicListHelper.GetMusicList(path, recursive).Select(Track.FromFileInfo).ToList();
         NumberOfSongs = Playlist.Count;
+    }
+
+    private async Task PreCacheNextSongs()
+    {
+        if (Playlist == null || Playlist.Count == 0) return;
+
+        var currentTrack = player.CurrentTrack;
+        int currentIndex = -1;
+
+        if (currentTrack != null)
+        {
+            currentIndex = Playlist.FindIndex(t => t.Path == currentTrack.Path);
+        }
+
+        var tracksToCache = new List<Track>();
+
+        if (_isShuffle)
+        {
+            // Cache 2 random tracks that are not current
+            for (int i = 0; i < 2; i++)
+            {
+                int randomIndex = _random.Next(Playlist.Count);
+                if (randomIndex != currentIndex)
+                {
+                    tracksToCache.Add(Playlist[randomIndex]);
+                }
+            }
+        }
+        else
+        {
+            // Cache next 2 tracks
+            for (int i = 1; i <= 2; i++)
+            {
+                int nextIndex = currentIndex + i;
+                if (nextIndex >= Playlist.Count)
+                {
+                    if (_playMode == PlayMode.Repeat)
+                    {
+                        nextIndex %= Playlist.Count;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                tracksToCache.Add(Playlist[nextIndex]);
+            }
+        }
+
+        if (tracksToCache.Count > 0)
+        {
+            await player.PreCacheNextSongs(tracksToCache);
+        }
     }
 
     protected override void Dispose(bool disposing)
