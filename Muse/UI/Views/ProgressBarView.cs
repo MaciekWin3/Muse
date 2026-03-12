@@ -34,6 +34,15 @@ public sealed class ProgressBarView : ProgressBar
 
     private void RegisterBusHandlers()
     {
+        uiEventBus.Subscribe<SongLoading>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                Title = $"Loading: {msg.Name}...";
+                Fraction = 0;
+            });
+        });
+
         uiEventBus.Subscribe<TrackProgress>(msg =>
         {
             Application.Invoke(() =>

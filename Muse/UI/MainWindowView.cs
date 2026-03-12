@@ -77,6 +77,11 @@ public sealed class MainWindowView : Window
                 }
             }
 
+            if (msg.Track.Source == TrackSource.YouTube && string.IsNullOrEmpty(msg.Track.StreamUrl))
+            {
+                uiEventBus.Publish(new SongLoading(msg.Track.Name));
+            }
+
             var loadResult = await player.Load(msg.Track);
             if (!loadResult.Success)
             {
