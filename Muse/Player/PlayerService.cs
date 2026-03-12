@@ -53,14 +53,22 @@ public class PlayerService : IPlayerService, IDisposable
                     return Result.Fail("YouTube track is missing a valid YouTube ID.");
                 }
 
-                var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId);
-                var audioOnlyStreams = manifest.GetAudioOnlyStreams();
-                var streamInfo = audioOnlyStreams.GetWithHighestBitrate();
-                if (streamInfo == null)
+                if (!string.IsNullOrEmpty(track.StreamUrl))
                 {
-                    return Result.Fail("No suitable audio-only stream was found for the YouTube video.");
+                    urlToLoad = track.StreamUrl;
                 }
-                urlToLoad = streamInfo.Url;
+                else
+                {
+                    var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId);
+                    var audioOnlyStreams = manifest.GetAudioOnlyStreams();
+                    var streamInfo = audioOnlyStreams.GetWithHighestBitrate();
+                    if (streamInfo == null)
+                    {
+                        return Result.Fail("No suitable audio-only stream was found for the YouTube video.");
+                    }
+                    urlToLoad = streamInfo.Url;
+                    track.StreamUrl = urlToLoad;
+                }
             }
 
             var media = track.Source == TrackSource.YouTube 
@@ -75,6 +83,32 @@ public class PlayerService : IPlayerService, IDisposable
         catch (Exception ex)
         {
             return Result.Fail($"Failed to load audio: {ex.Message}");
+        }
+    }
+
+    public async Task PreCacheNextSongs(IEnumerable<Track> tracks)
+    {
+        foreach (var track in tracks)
+        {
+            if (track.Source == TrackSource.YouTube && 
+                !string.IsNullOrEmpty(track.YouTubeId) && 
+                string.IsNullOrEmpty(track.StreamUrl))
+            {
+                try
+                {
+                    var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId);
+                    var audioOnlyStreams = manifest.GetAudioOnlyStreams();
+                    var streamInfo = audioOnlyStreams.GetWithHighestBitrate();
+                    if (streamInfo != null)
+                    {
+                        track.StreamUrl = streamInfo.Url;
+                    }
+                }
+                catch
+                {
+                    // Ignore errors during pre-caching
+                }
+            }
         }
     }
 

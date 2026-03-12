@@ -13,6 +13,7 @@ public class Track
     public TrackSource Source { get; set; }
     public string? YouTubeId { get; set; }
     public int? DurationInSeconds { get; set; }
+    public string? StreamUrl { get; set; }
 
     public static Track FromFileInfo(FileInfo fileInfo) => new()
     {

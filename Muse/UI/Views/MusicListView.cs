@@ -51,6 +51,18 @@ public sealed class MusicListView : FrameView
             _playMode = msg.NewMode;
         });
 
+        uiEventBus.Subscribe<SongSelected>(msg =>
+        {
+            Application.Invoke(() =>
+            {
+                int index = songs.FindIndex(t => t.Path == msg.Track.Path);
+                if (index >= 0)
+                {
+                    listView.SelectedItem = index;
+                }
+            });
+        });
+
         uiEventBus.Subscribe<PlaylistUpdated>(msg =>
         {
             Application.Invoke(() =>
@@ -107,14 +119,7 @@ public sealed class MusicListView : FrameView
             }
 
             var track = songs[newIndex];
-
-            var loadResult = await playerService.Load(track);
-            if (!loadResult.Success)
-            {
-                MessageBox.ErrorQuery("Error", $"Cannot load file: {loadResult.Error}", "Ok");
-                return;
-            }
-            playerService.Play();
+            uiEventBus.Publish(new SongSelected(track));
         });
 
         uiEventBus.Subscribe<DeleteSongRequested>(_ =>
