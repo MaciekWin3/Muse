@@ -26,5 +26,5 @@ public static class Globals
     public const int BUTTONS_HEIGHT = 2;
     public const int BUTTONS_WIDTH = 1;
     public const int PROGRESS_BAR_HEIGHT = 3;
-    public const int VOLUME_SLIDER_HEIGHT = 4;
+    public const int VOLUME_SLIDER_HEIGHT = 3;
 }
