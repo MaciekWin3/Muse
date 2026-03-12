@@ -3,6 +3,7 @@ using Muse.Player;
 namespace Muse.UI.Bus
 {
     public sealed record SongSelected(Track Track);
+    public sealed record SongLoading(string Name);
     public sealed record PlayRequested();
     public sealed record PauseRequested();
     public sealed record TogglePlayRequested();
