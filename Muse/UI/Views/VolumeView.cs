@@ -11,7 +11,6 @@ namespace Muse.UI.Views;
 public sealed class VolumeView : ProgressBar
 {
     private readonly IUiEventBus uiBus;
-    private float _previousVolume = 0.5f;
 
     public VolumeView(IUiEventBus uiBus, Pos x, Pos y)
     {
@@ -44,19 +43,6 @@ public sealed class VolumeView : ProgressBar
                 Fraction = msg.Volume;
                 Title = $"Volume ({(int)(msg.Volume * 100)}%)";
             });
-        });
-
-        uiBus.Subscribe<MuteToggle>(msg =>
-        {
-            if (msg.IsMuted)
-            {
-                _previousVolume = Fraction;
-                UpdateVolume(0);
-            }
-            else
-            {
-                UpdateVolume(_previousVolume);
-            }
         });
     }
 

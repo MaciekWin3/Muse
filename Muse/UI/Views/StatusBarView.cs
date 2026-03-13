@@ -30,10 +30,13 @@ public class StatusBarView : StatusBar
             Key = Key.Backspace,
             Action = () =>
             {
-                var muteShortcutSubView = SubViews.FirstOrDefault(s => s.Title.Contains("Mute", StringComparison.OrdinalIgnoreCase));
-                if (muteShortcutSubView is not null)
+                var muteShortcut = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.Contains("Mute", StringComparison.OrdinalIgnoreCase));
+                if (muteShortcut is not null)
                 {
-                    uiEventBus.Publish(new MuteToggle(muteShortcutSubView.Title == "Mute"));
+                    // If current title is "Mute", it's unmuted, so we want to mute (true).
+                    // If it is anything else (like "Unmute"), we want to unmute (false).
+                    bool shouldMute = muteShortcut.Title.Equals("Mute", StringComparison.OrdinalIgnoreCase);
+                    uiEventBus.Publish(new MuteToggle(shouldMute));
                 }
             }
         });
