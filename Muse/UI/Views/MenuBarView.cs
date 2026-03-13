@@ -75,8 +75,8 @@ public class MenuBarView : MenuBarv2
             }),
             new MenuBarItemv2("Options", new MenuItemv2[]
             {
-                new MenuBarItemv2("Playlists", GetPlaylistMenuItems()),
-                new MenuBarItemv2("Theme", GetThemeMenuItems()),
+                new MenuItemv2("Playlists", "Manage playlists", null) { SubMenu = new Menuv2(GetPlaylistMenuItems()) },
+                new MenuItemv2("Theme", "Change application theme", null) { SubMenu = new Menuv2(GetThemeMenuItems()) },
                 new MenuItemv2("Download", "Download from YouTube", () => ShowDownloadDialog()),
                 new MenuItemv2("Stream Playlist", "Stream YouTube playlist", () => ShowStreamPlaylistDialog())
             }),

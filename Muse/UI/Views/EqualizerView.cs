@@ -1,6 +1,7 @@
 using Muse.Player;
 using Muse.UI.Bus;
 using Muse.Utils;
+using Terminal.Gui;
 using Terminal.Gui.Views;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.App;
@@ -103,6 +104,19 @@ public class DiscoBarSeries : ISeries
 {
     public List<float> Bars { get; set; } = new();
 
+    private static readonly Terminal.Gui.Drawing.Color[] _colors = [
+        Terminal.Gui.Drawing.Color.BrightBlue,
+        Terminal.Gui.Drawing.Color.Blue,
+        Terminal.Gui.Drawing.Color.Cyan,
+        Terminal.Gui.Drawing.Color.BrightCyan,
+        Terminal.Gui.Drawing.Color.Green,
+        Terminal.Gui.Drawing.Color.BrightGreen,
+        Terminal.Gui.Drawing.Color.Yellow,
+        Terminal.Gui.Drawing.Color.BrightYellow,
+        Terminal.Gui.Drawing.Color.Red,
+        Terminal.Gui.Drawing.Color.BrightRed
+    ];
+
     public void DrawSeries(GraphView graph, Rectangle viewport, RectangleF graphSpace)
     {
         if (Bars == null || Bars.Count == 0) return;
@@ -118,6 +132,19 @@ public class DiscoBarSeries : ISeries
 
             for (int y = 0; y < height; y++)
             {
+                // Vertical gradient: higher bars get "hotter" colors
+                Terminal.Gui.Drawing.Color segmentColor;
+                if (y > viewport.Height * 0.8) segmentColor = Terminal.Gui.Drawing.Color.BrightRed;
+                else if (y > viewport.Height * 0.6) segmentColor = Terminal.Gui.Drawing.Color.BrightYellow;
+                else if (y > viewport.Height * 0.4) segmentColor = Terminal.Gui.Drawing.Color.BrightGreen;
+                else if (y > viewport.Height * 0.2) segmentColor = Terminal.Gui.Drawing.Color.BrightCyan;
+                else segmentColor = Terminal.Gui.Drawing.Color.BrightBlue;
+
+                var attribute = new Terminal.Gui.Drawing.Attribute(segmentColor, Terminal.Gui.Drawing.Color.Black);
+
+                // Set the attribute on the driver before drawing
+                Application.Driver?.SetAttribute(attribute);
+
                 // Use a block rune for bars
                 graph.AddRune(x, viewport.Bottom - 1 - y, (Rune)'█');
                 
