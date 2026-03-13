@@ -1,5 +1,6 @@
 using Muse.Player;
 using Muse.UI.Bus;
+using Muse.Utils;
 using Terminal.Gui.Views;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.App;
@@ -15,7 +16,7 @@ public sealed class EqualizerView : FrameView
     private readonly IPlayerService playerService;
     private readonly GraphView graphView;
     private readonly DiscoBarSeries discoBarSeries;
-    private readonly Random random = new();
+    private readonly SpectrumAnalyzer spectrumAnalyzer;
 
     public EqualizerView(IUiEventBus uiEventBus, IPlayerService playerService, Pos x, Pos y)
     {
@@ -25,6 +26,8 @@ public sealed class EqualizerView : FrameView
         Y = y;
         Title = "Equalizer";
         BorderStyle = LineStyle.Rounded;
+
+        spectrumAnalyzer = new SpectrumAnalyzer();
 
         graphView = new GraphView
         {
@@ -66,31 +69,33 @@ public sealed class EqualizerView : FrameView
 
     private void UpdateBars()
     {
-        // For a more "music-like" simulation without real-time data:
-        // - Lower bars (bass) usually have higher energy.
-        // - Middle bars (mids) fluctuate.
-        // - Higher bars (treble) have faster but smaller energy spikes.
-        var rect = graphView.Viewport;
-        if (rect.Width <= 0) return;
-
-        var barCount = 10; // Fixed number for cleaner "stair" look as requested
+        var data = spectrumAnalyzer.SpectrumData;
+        if (data == null || data.Length == 0) return;
 
         // Maintain some continuity in the bars if they already exist
-        if (discoBarSeries.Bars.Count != barCount)
+        if (discoBarSeries.Bars.Count != data.Length)
         {
-            discoBarSeries.Bars = Enumerable.Repeat(0f, barCount).ToList();
+            discoBarSeries.Bars = data.ToList();
         }
-
-        for (int i = 0; i < barCount; i++)
+        else
         {
-            float bias = 1.0f - (i / (float)barCount); // Bias higher for lower frequencies (bass)
-            float noise = (float)random.NextDouble() * 100 * (0.5f + bias * 0.5f);
-            
-            // Smooth transition
-            discoBarSeries.Bars[i] = (discoBarSeries.Bars[i] * 0.3f) + (noise * 0.7f);
+            for (int i = 0; i < data.Length; i++)
+            {
+                // Smooth transition for visual comfort
+                discoBarSeries.Bars[i] = (discoBarSeries.Bars[i] * 0.2f) + (data[i] * 0.8f);
+            }
         }
         
         graphView.SetNeedsDraw();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            spectrumAnalyzer.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }
 
