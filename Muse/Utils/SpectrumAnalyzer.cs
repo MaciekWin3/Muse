@@ -34,57 +34,53 @@ public sealed class SpectrumAnalyzer : IDisposable
     {
         if (capture == null) return;
 
-        // Use a WaveBuffer to handle samples correctly
-        var buffer = new WaveBuffer(e.Buffer);
-        int samplesRead = e.BytesRecorded / 4; // Assuming 32-bit float for WasapiLoopback
+        int bytesPerSample = capture.WaveFormat.BitsPerSample / 8;
+        int samplesRecorded = e.BytesRecorded / bytesPerSample;
+        int channels = capture.WaveFormat.Channels;
 
-        if (capture.WaveFormat.Encoding == WaveFormatEncoding.IeeeFloat)
+        for (int i = 0; i < samplesRecorded; i += channels)
         {
-            for (int i = 0; i < samplesRead; i++)
+            float sample = 0;
+            if (capture.WaveFormat.Encoding == WaveFormatEncoding.IeeeFloat)
             {
-                sampleAggregator.Add(buffer.FloatBuffer[i]);
+                sample = BitConverter.ToSingle(e.Buffer, i * bytesPerSample);
             }
-        }
-        else if (capture.WaveFormat.Encoding == WaveFormatEncoding.Pcm)
-        {
-            // Fallback for 16-bit PCM if loopback uses that
-            for (int i = 0; i < e.BytesRecorded / 2; i++)
+            else if (capture.WaveFormat.Encoding == WaveFormatEncoding.Pcm)
             {
-                sampleAggregator.Add(buffer.ShortBuffer[i] / 32768f);
+                if (capture.WaveFormat.BitsPerSample == 16)
+                    sample = BitConverter.ToInt16(e.Buffer, i * bytesPerSample) / 32768f;
+                else if (capture.WaveFormat.BitsPerSample == 24)
+                    sample = ((((e.Buffer[i * bytesPerSample + 2] << 16) | (e.Buffer[i * bytesPerSample + 1] << 8) | e.Buffer[i * bytesPerSample]) << 8) >> 8) / 8388608f;
             }
+
+            sampleAggregator.Add(sample);
         }
     }
 
     private void OnFftCalculated(object? sender, FftEventArgs e)
     {
-        // Process FFT results into 10 bins for the equalizer
         int bins = 10;
         float[] newSpectrum = new float[bins];
-        
-        // We only care about the first half of the FFT (up to Nyquist frequency)
         int usableBins = fftLength / 2;
-        
-        // Use logarithmic binning for a more "musical" distribution
-        // (bass gets fewer bins, treble gets more)
+
         for (int i = 0; i < bins; i++)
         {
-            int startBin = (int)Math.Pow(usableBins, (double)i / bins);
-            int endBin = (int)Math.Pow(usableBins, (double)(i + 1) / bins);
+            // Use a bit more linear mapping for low frequency bins to ensure they show up
+            int startBin = (int)(usableBins * Math.Pow((double)i / bins, 2));
+            int endBin = (int)(usableBins * Math.Pow((double)(i + 1) / bins, 2));
             if (endBin <= startBin) endBin = startBin + 1;
 
-            float sum = 0;
-            int count = 0;
+            float max = 0;
             for (int j = startBin; j < endBin && j < e.Result.Length; j++)
             {
                 float magnitude = (float)Math.Sqrt(e.Result[j].X * e.Result[j].X + e.Result[j].Y * e.Result[j].Y);
-                sum += magnitude;
-                count++;
+                if (magnitude > max) max = magnitude;
             }
-            
-            float avg = count > 0 ? sum / count : 0;
-            // Boost lower frequencies and apply logarithmic scaling
-            float boost = 1.0f + (bins - i) * 0.5f;
-            newSpectrum[i] = (float)Math.Clamp(Math.Log10(avg * boost + 1) * 80, 0, 100);
+
+            // High sensitivity boost + Logarithmic scaling
+            // Even small sounds should show up now
+            float val = (float)Math.Clamp(Math.Log10(max * 100 + 1) * 100, 0, 100);
+            newSpectrum[i] = val;
         }
 
         SpectrumData = newSpectrum;
