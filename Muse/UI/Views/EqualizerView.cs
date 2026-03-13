@@ -81,8 +81,8 @@ public sealed class EqualizerView : FrameView
         {
             for (int i = 0; i < data.Length; i++)
             {
-                // Smooth transition for visual comfort
-                discoBarSeries.Bars[i] = (discoBarSeries.Bars[i] * 0.2f) + (data[i] * 0.8f);
+                // Less smoothing (0.1/0.9) to show fast changes
+                discoBarSeries.Bars[i] = (discoBarSeries.Bars[i] * 0.1f) + (data[i] * 0.9f);
             }
         }
         
