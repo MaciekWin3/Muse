@@ -34,15 +34,24 @@ public sealed class SpectrumAnalyzer : IDisposable
     {
         if (capture == null) return;
 
-        byte[] buffer = e.Buffer;
-        int bytesRecorded = e.BytesRecorded;
-        int bufferOffset = 0;
+        // Use a WaveBuffer to handle samples correctly
+        var buffer = new WaveBuffer(e.Buffer);
+        int samplesRead = e.BytesRecorded / 4; // Assuming 32-bit float for WasapiLoopback
 
-        while (bufferOffset < bytesRecorded)
+        if (capture.WaveFormat.Encoding == WaveFormatEncoding.IeeeFloat)
         {
-            float sample = BitConverter.ToSingle(buffer, bufferOffset);
-            sampleAggregator.Add(sample);
-            bufferOffset += capture.WaveFormat.BlockAlign;
+            for (int i = 0; i < samplesRead; i++)
+            {
+                sampleAggregator.Add(buffer.FloatBuffer[i]);
+            }
+        }
+        else if (capture.WaveFormat.Encoding == WaveFormatEncoding.Pcm)
+        {
+            // Fallback for 16-bit PCM if loopback uses that
+            for (int i = 0; i < e.BytesRecorded / 2; i++)
+            {
+                sampleAggregator.Add(buffer.ShortBuffer[i] / 32768f);
+            }
         }
     }
 
@@ -54,22 +63,28 @@ public sealed class SpectrumAnalyzer : IDisposable
         
         // We only care about the first half of the FFT (up to Nyquist frequency)
         int usableBins = fftLength / 2;
-        int samplesPerBin = usableBins / bins;
-
+        
+        // Use logarithmic binning for a more "musical" distribution
+        // (bass gets fewer bins, treble gets more)
         for (int i = 0; i < bins; i++)
         {
-            float max = 0;
-            for (int j = 0; j < samplesPerBin; j++)
+            int startBin = (int)Math.Pow(usableBins, (double)i / bins);
+            int endBin = (int)Math.Pow(usableBins, (double)(i + 1) / bins);
+            if (endBin <= startBin) endBin = startBin + 1;
+
+            float sum = 0;
+            int count = 0;
+            for (int j = startBin; j < endBin && j < e.Result.Length; j++)
             {
-                int index = i * samplesPerBin + j;
-                if (index < e.Result.Length)
-                {
-                    float magnitude = (float)Math.Sqrt(e.Result[index].X * e.Result[index].X + e.Result[index].Y * e.Result[index].Y);
-                    if (magnitude > max) max = magnitude;
-                }
+                float magnitude = (float)Math.Sqrt(e.Result[j].X * e.Result[j].X + e.Result[j].Y * e.Result[j].Y);
+                sum += magnitude;
+                count++;
             }
-            // Logarithmic scaling for better visualization
-            newSpectrum[i] = (float)Math.Clamp(Math.Log10(max + 1) * 100, 0, 100);
+            
+            float avg = count > 0 ? sum / count : 0;
+            // Boost lower frequencies and apply logarithmic scaling
+            float boost = 1.0f + (bins - i) * 0.5f;
+            newSpectrum[i] = (float)Math.Clamp(Math.Log10(avg * boost + 1) * 80, 0, 100);
         }
 
         SpectrumData = newSpectrum;
