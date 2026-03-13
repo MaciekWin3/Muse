@@ -21,6 +21,7 @@ public sealed class MainWindowView : Window
     private MusicListView musicListView = null!;
     private ProgressBarView progressBarView = null!;
     public VolumeView volumeSlider = null!;
+    private EqualizerView equalizerView = null!;
 
     private readonly FileSystemWatcher watcher = new();
     private int NumberOfSongs { get; set; }
@@ -276,9 +277,14 @@ public sealed class MainWindowView : Window
         Add(volumeSlider);
 
         musicListView = new MusicListView(uiEventBus, player, 0, 0, 0);
-        musicListView.Width = Dim.Fill();
+        musicListView.Width = Dim.Percent(70);
         musicListView.Height = Dim.Fill() - (Globals.BUTTONS_FRAME_HEIGHT + Globals.PROGRESS_BAR_HEIGHT + Globals.VOLUME_SLIDER_HEIGHT);
         Add(musicListView);
+
+        equalizerView = new EqualizerView(uiEventBus, player, Pos.Right(musicListView), 0);
+        equalizerView.Width = Dim.Fill();
+        equalizerView.Height = musicListView.Height;
+        Add(equalizerView);
 
         watcher.Path = Globals.MuseDirectory;
         watcher.IncludeSubdirectories = true;
