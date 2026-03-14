@@ -134,7 +134,7 @@ public class SampleAggregator
         if (fftPos >= fftLength)
         {
             FastFourierTransform.FFT(true, (int)Math.Log(fftLength, 2.0), fftBuffer);
-            FftCalculated?.Invoke(this, new FftEventArgs(fftBuffer));
+            FftCalculated?.Invoke(this, new FftEventArgs((Complex[])fftBuffer.Clone()));
             fftPos = 0;
         }
     }
