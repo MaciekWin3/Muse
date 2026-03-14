@@ -6,22 +6,19 @@ using Terminal.Gui.Views;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
-using System.Text;
 using System.Drawing;
 
 namespace Muse.UI.Views;
 
 public sealed class EqualizerView : FrameView
 {
-    private readonly IUiEventBus uiEventBus;
     private readonly IPlayerService playerService;
     private readonly GraphView graphView;
     private readonly DiscoBarSeries discoBarSeries;
     private readonly SpectrumAnalyzer spectrumAnalyzer;
 
-    public EqualizerView(IUiEventBus uiEventBus, IPlayerService playerService, Pos x, Pos y)
+    public EqualizerView(IPlayerService playerService, Pos x, Pos y)
     {
-        this.uiEventBus = uiEventBus;
         this.playerService = playerService;
         X = x;
         Y = y;
