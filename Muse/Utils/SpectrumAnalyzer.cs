@@ -88,9 +88,24 @@ public sealed class SpectrumAnalyzer : IDisposable
 
     public void Dispose()
     {
-        capture?.StopRecording();
-        capture?.Dispose();
+        var localCapture = capture;
         capture = null;
+
+        if (localCapture == null)
+        {
+            return;
+        }
+
+        localCapture.DataAvailable -= OnDataAvailable;
+
+        try
+        {
+            localCapture.StopRecording();
+        }
+        finally
+        {
+            localCapture.Dispose();
+        }
     }
 }
 
