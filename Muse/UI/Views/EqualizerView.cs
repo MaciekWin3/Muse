@@ -15,7 +15,7 @@ public sealed class EqualizerView : FrameView
     private readonly IPlayerService playerService;
     private readonly GraphView graphView;
     private readonly DiscoBarSeries discoBarSeries;
-    private readonly SpectrumAnalyzer spectrumAnalyzer;
+    private SpectrumAnalyzer spectrumAnalyzer;
 
     public EqualizerView(IPlayerService playerService, Pos x, Pos y)
     {
@@ -24,8 +24,6 @@ public sealed class EqualizerView : FrameView
         Y = y;
         Title = "Equalizer";
         BorderStyle = LineStyle.Rounded;
-
-        spectrumAnalyzer = new SpectrumAnalyzer();
 
         graphView = new GraphView
         {
@@ -46,14 +44,33 @@ public sealed class EqualizerView : FrameView
         {
             if (playerService.State == PlaybackState.Playing)
             {
+                EnsureSpectrumAnalyzer();
                 UpdateBars();
             }
             else
             {
+                StopSpectrumAnalyzer();
                 ClearBars();
             }
             return true;
         });
+    }
+
+    private void EnsureSpectrumAnalyzer()
+    {
+        if (spectrumAnalyzer == null)
+        {
+            spectrumAnalyzer = new SpectrumAnalyzer();
+        }
+    }
+
+    private void StopSpectrumAnalyzer()
+    {
+        if (spectrumAnalyzer != null)
+        {
+            spectrumAnalyzer.Dispose();
+            spectrumAnalyzer = null;
+        }
     }
 
     private void ClearBars()
@@ -67,6 +84,7 @@ public sealed class EqualizerView : FrameView
 
     private void UpdateBars()
     {
+        if (spectrumAnalyzer == null) return;
         var data = spectrumAnalyzer.SpectrumData;
         if (data == null || data.Length == 0) return;
 
@@ -91,7 +109,11 @@ public sealed class EqualizerView : FrameView
     {
         if (disposing)
         {
-            spectrumAnalyzer.Dispose();
+            if (spectrumAnalyzer != null)
+            {
+                spectrumAnalyzer.Dispose();
+                spectrumAnalyzer = null;
+            }
         }
         base.Dispose(disposing);
     }
