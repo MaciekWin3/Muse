@@ -89,7 +89,7 @@ public sealed class MainWindowView : Window
                 uiEventBus.Publish(new PauseRequested());
                 Application.Invoke(() => 
                 {
-                    MessageBox.ErrorQuery("Error", $"Cannot load track: {loadResult.Error}", "OK");
+                    MessageBox.ErrorQuery(Application.Instance, "Error", $"Cannot load track: {loadResult.Error}", "OK");
                     uiEventBus.Publish(new NextSongRequested());
                 });
                 return;
@@ -99,7 +99,7 @@ public sealed class MainWindowView : Window
             var result = player.Play();
             if (!result.Success)
             {
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", result.Error, "OK"));
+                Application.Invoke(() => MessageBox.ErrorQuery(Application.Instance, "Error", result.Error, "OK"));
             }
             else
             {
@@ -112,7 +112,7 @@ public sealed class MainWindowView : Window
             var songInfoResult = player.GetSongInfo();
             if (songInfoResult.IsFailure)
             {
-                MessageBox.ErrorQuery("Error", "Please select a song", "OK");
+                MessageBox.ErrorQuery(Application.Instance, "Error", "Please select a song", "OK");
                 uiEventBus.Publish(new PauseRequested());
                 return;
             }
@@ -197,7 +197,7 @@ public sealed class MainWindowView : Window
             }
             catch (Exception ex)
             {
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", $"Failed to load YouTube playlist: {ex.Message}", "OK"));
+                Application.Invoke(() => MessageBox.ErrorQuery(Application.Instance, "Error", $"Failed to load YouTube playlist: {ex.Message}", "OK"));
             }
         });
 

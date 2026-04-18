@@ -84,7 +84,7 @@ public sealed class MusicListView : FrameView
                 return;
             }
 
-            int currentIndex = listView.SelectedItem;
+            int currentIndex = listView.SelectedItem ?? 0;
             int newIndex = currentIndex + msg.Offset;
 
             if (newIndex < 0)
@@ -114,7 +114,7 @@ public sealed class MusicListView : FrameView
 
             if (newIndex < 0 || newIndex >= songs.Count)
             {
-                MessageBox.ErrorQuery("Error", "Unable to obtain song info.", "Ok");
+                MessageBox.ErrorQuery(Application.Instance, "Error", "Unable to obtain song info.", "Ok");
                 return;
             }
 
@@ -124,7 +124,7 @@ public sealed class MusicListView : FrameView
 
         uiEventBus.Subscribe<DeleteSongRequested>(_ =>
         {
-            int selectedIndex = listView.SelectedItem;
+            int selectedIndex = listView.SelectedItem ?? -1;
             if (selectedIndex >= 0 && selectedIndex < songs.Count)
             {
                 var track = songs[selectedIndex];
@@ -133,7 +133,7 @@ public sealed class MusicListView : FrameView
                     // Cannot delete remote track from disk
                     return;
                 }
-                var result = MessageBox.Query("Delete", $"Are you sure you want to delete {track.Name}?", "Yes", "No");
+                var result = MessageBox.Query(Application.Instance, "Delete", $"Are you sure you want to delete {track.Name}?", "Yes", "No");
                 if (result == 0) // Yes
                 {
                     try
@@ -148,7 +148,7 @@ public sealed class MusicListView : FrameView
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.ErrorQuery("Error", $"Failed to delete file: {ex.Message}", "Ok");
+                        MessageBox.ErrorQuery(Application.Instance, "Error", $"Failed to delete file: {ex.Message}", "Ok");
                     }
                 }
             }
@@ -160,7 +160,7 @@ public sealed class MusicListView : FrameView
     {
         listView.OpenSelectedItem += (sender, e) =>
         {
-            int index = e.Item;
+            int index = e.Item ?? -1;
             if (index >= 0 && index < songs.Count)
             {
                 uiEventBus.Publish(new SongSelected(songs[index]));
