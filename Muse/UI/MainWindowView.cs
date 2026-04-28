@@ -2,13 +2,13 @@ using Muse.Player;
 using Muse.UI.Bus;
 using Muse.UI.Views;
 using Muse.Utils;
-using System.Threading;
-using YoutubeExplode;
-using YoutubeExplode.Playlists;
 using Terminal.Gui.App;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
+using YoutubeExplode;
+using YoutubeExplode.Playlists;
+using YoutubeExplode.Videos;
 
 namespace Muse.UI;
 
@@ -50,7 +50,7 @@ public sealed class MainWindowView : Window
         RegisterStyles();
 
         uiEventBus.Publish(new PlaylistUpdated(Playlist));
-        
+
         // Single persistent timer for tracking playback
         Application.AddTimeout(TimeSpan.FromMilliseconds(200), () =>
         {
@@ -87,7 +87,7 @@ public sealed class MainWindowView : Window
             if (!loadResult.Success)
             {
                 uiEventBus.Publish(new PauseRequested());
-                Application.Invoke(() => 
+                Application.Invoke(() =>
                 {
                     MessageBox.ErrorQuery("Error", $"Cannot load track: {loadResult.Error}", "OK");
                     uiEventBus.Publish(new NextSongRequested());
@@ -172,19 +172,53 @@ public sealed class MainWindowView : Window
         {
             try
             {
-                var playlist = await _youtubeClient.Playlists.GetAsync(msg.PlaylistUrl);
-                
                 var newTracks = new List<Track>();
-                await foreach (var v in _youtubeClient.Playlists.GetVideosAsync(playlist.Id))
+
+                var playlistId = PlaylistId.TryParse(msg.PlaylistUrl);
+                if (playlistId is not null)
                 {
-                    newTracks.Add(new Track
+                    var playlist = await _youtubeClient.Playlists.GetAsync(playlistId.Value);
+                    await foreach (var v in _youtubeClient.Playlists.GetVideosAsync(playlist.Id))
                     {
-                        Name = v.Title,
-                        Path = v.Url,
-                        Source = TrackSource.YouTube,
-                        YouTubeId = v.Id,
-                        DurationInSeconds = (int?)(v.Duration?.TotalSeconds)
-                    });
+                        if (newTracks.Count >= 100)
+                        {
+                            break;
+                        }
+
+                        newTracks.Add(new Track
+                        {
+                            Name = v.Title,
+                            Path = v.Url,
+                            Source = TrackSource.YouTube,
+                            YouTubeId = v.Id,
+                            DurationInSeconds = (int?)(v.Duration?.TotalSeconds)
+                        });
+                    }
+                }
+                else
+                {
+                    var videoId = VideoId.TryParse(msg.PlaylistUrl);
+                    if (videoId is not null)
+                    {
+                        var v = await _youtubeClient.Videos.GetAsync(videoId.Value);
+                        newTracks.Add(new Track
+                        {
+                            Name = v.Title,
+                            Path = v.Url,
+                            Source = TrackSource.YouTube,
+                            YouTubeId = v.Id,
+                            DurationInSeconds = (int?)(v.Duration?.TotalSeconds)
+                        });
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Provided URL is neither a valid YouTube playlist nor a video.");
+                    }
+                }
+
+                if (newTracks.Count == 0)
+                {
+                    throw new Exception("No tracks found in the provided YouTube source.");
                 }
 
                 Application.Invoke(() =>
@@ -197,7 +231,7 @@ public sealed class MainWindowView : Window
             }
             catch (Exception ex)
             {
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", $"Failed to load YouTube playlist: {ex.Message}", "OK"));
+                Application.Invoke(() => MessageBox.ErrorQuery("Error", $"Failed to load YouTube source: {ex.Message}", "OK"));
             }
         });
 
@@ -315,14 +349,14 @@ public sealed class MainWindowView : Window
         }
 
         var info = songInfoResult.Value;
-        
+
         // Notify the bus only if actually playing/paused
         if (player.State != PlaybackState.Stopped)
         {
             uiEventBus.Publish(new TrackProgress(info.Name, info.CurrentTime, info.TotalTimeInSeconds));
         }
 
-        if (info.CurrentTime >= info.TotalTimeInSeconds && info.TotalTimeInSeconds > 0 && 
+        if (info.CurrentTime >= info.TotalTimeInSeconds && info.TotalTimeInSeconds > 0 &&
             player.State == PlaybackState.Playing && !_isTransitioning)
         {
             if (_playMode == PlayMode.RepeatOne)
