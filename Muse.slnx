@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".github/dependabot.yml" />
+    <File Path=".github/workflows/build.yml" />
+    <File Path=".gitignore" />
+    <File Path="GEMINI.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Solution Items/docs/">
+    <File Path="docs/TODO.md" />
+  </Folder>
+  <Project Path="Muse/Muse.csproj" />
+</Solution>
