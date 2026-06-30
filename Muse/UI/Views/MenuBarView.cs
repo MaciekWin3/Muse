@@ -12,7 +12,7 @@ using YoutubeExplode.Playlists;
 
 namespace Muse.UI.Views;
 
-public class MenuBarView : MenuBarv2
+public class MenuBarView : MenuBar
 {
     private readonly IYoutubeDownloadService youtubeDownloadService;
     private readonly IUiEventBus uiEventBus;
@@ -68,52 +68,52 @@ public class MenuBarView : MenuBarv2
 
         Menus =
         [
-            new MenuBarItemv2("File", new MenuItemv2[]
+            new MenuBarItem("File", new MenuItem[]
             {
-                new MenuItemv2("Open", "Open music folder", () => OpenFolder()),
-                new MenuItemv2("Quit", "Quit application", () => Application.RequestStop()),
+                new MenuItem("Open", "Open music folder", () => OpenFolder()),
+                new MenuItem("Quit", "Quit application", () => Application.RequestStop()),
             }),
-            new MenuBarItemv2("Options", new MenuItemv2[]
+            new MenuBarItem("Options", new MenuItem[]
             {
-                new MenuItemv2("Playlists", "Manage playlists", null) { SubMenu = new Menuv2(GetPlaylistMenuItems()) },
-                new MenuItemv2("Theme", "Change application theme", null) { SubMenu = new Menuv2(GetThemeMenuItems()) },
-                new MenuItemv2("Download", "Download from YouTube", () => ShowDownloadDialog()),
-                new MenuItemv2("Stream Playlist", "Stream YouTube playlist", () => ShowStreamPlaylistDialog())
+                new MenuItem("Playlists", "Manage playlists", null) { SubMenu = new Menu(GetPlaylistMenuItems()) },
+                new MenuItem("Theme", "Change application theme", null) { SubMenu = new Menu(GetThemeMenuItems()) },
+                new MenuItem("Download", "Download from YouTube", () => ShowDownloadDialog()),
+                new MenuItem("Stream Playlist", "Stream YouTube playlist", () => ShowStreamPlaylistDialog())
             }),
-            new MenuBarItemv2("Playback", new MenuItemv2[]
+            new MenuBarItem("Playback", new MenuItem[]
             {
-                new MenuItemv2(repeatTitle, "Toggle repeat mode (R)", () => uiEventBus.Publish(new TogglePlayModeRequested())),
-                new MenuItemv2(shuffleTitle, "Toggle shuffle mode (S)", () => uiEventBus.Publish(new ShuffleToggleRequested()))
+                new MenuItem(repeatTitle, "Toggle repeat mode (R)", () => uiEventBus.Publish(new TogglePlayModeRequested())),
+                new MenuItem(shuffleTitle, "Toggle shuffle mode (S)", () => uiEventBus.Publish(new ShuffleToggleRequested()))
             }),
-            new MenuBarItemv2("Help", new MenuItemv2[]
+            new MenuBarItem("Help", new MenuItem[]
             {
-                new MenuItemv2("About", "About Muse", () => ShowAsciiArt()),
-                new MenuItemv2("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
-                new MenuItemv2("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
+                new MenuItem("About", "About Muse", () => ShowAsciiArt()),
+                new MenuItem("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
+                new MenuItem("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
             })
         ];
     }
 
-    private MenuItemv2[] GetThemeMenuItems()
+    private MenuItem[] GetThemeMenuItems()
     {
-        return new MenuItemv2[]
+        return new MenuItem[]
         {
-            new MenuItemv2("Default", "Default theme", () => uiEventBus.Publish(new ChangeThemeRequested("Default"))),
-            new MenuItemv2("Dark", "Dark theme", () => uiEventBus.Publish(new ChangeThemeRequested("Dark"))),
-            new MenuItemv2("Light", "Light theme", () => uiEventBus.Publish(new ChangeThemeRequested("Light"))),
-            new MenuItemv2("TurboPascal 5", "TurboPascal 5 theme", () => uiEventBus.Publish(new ChangeThemeRequested("TurboPascal 5"))),
-            new MenuItemv2("Anders", "Anders theme", () => uiEventBus.Publish(new ChangeThemeRequested("Anders"))),
-            new MenuItemv2("Amber Phosphor", "Amber Phosphor theme", () => uiEventBus.Publish(new ChangeThemeRequested("Amber Phosphor"))),
-            new MenuItemv2("Green Phosphor", "Green Phosphor theme", () => uiEventBus.Publish(new ChangeThemeRequested("Green Phosphor"))),
-            new MenuItemv2("8-Bit", "8-Bit theme", () => uiEventBus.Publish(new ChangeThemeRequested("8-Bit")))
+            new MenuItem("Default", "Default theme", () => uiEventBus.Publish(new ChangeThemeRequested("Default"))),
+            new MenuItem("Dark", "Dark theme", () => uiEventBus.Publish(new ChangeThemeRequested("Dark"))),
+            new MenuItem("Light", "Light theme", () => uiEventBus.Publish(new ChangeThemeRequested("Light"))),
+            new MenuItem("TurboPascal 5", "TurboPascal 5 theme", () => uiEventBus.Publish(new ChangeThemeRequested("TurboPascal 5"))),
+            new MenuItem("Anders", "Anders theme", () => uiEventBus.Publish(new ChangeThemeRequested("Anders"))),
+            new MenuItem("Amber Phosphor", "Amber Phosphor theme", () => uiEventBus.Publish(new ChangeThemeRequested("Amber Phosphor"))),
+            new MenuItem("Green Phosphor", "Green Phosphor theme", () => uiEventBus.Publish(new ChangeThemeRequested("Green Phosphor"))),
+            new MenuItem("8-Bit", "8-Bit theme", () => uiEventBus.Publish(new ChangeThemeRequested("8-Bit")))
         };
     }
 
-    private MenuItemv2[] GetPlaylistMenuItems()
+    private MenuItem[] GetPlaylistMenuItems()
     {
-        var items = new List<MenuItemv2>
+        var items = new List<MenuItem>
         {
-            new MenuItemv2("All Songs", "Show all songs", () =>
+            new MenuItem("All Songs", "Show all songs", () =>
             {
                 Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(Globals.MuseDirectory, true)));
             })
@@ -127,7 +127,7 @@ public class MenuBarView : MenuBarv2
                 foreach (var dir in subDirs)
                 {
                     var dirName = Path.GetFileName(dir);
-                    items.Add(new MenuItemv2(dirName, $"Show songs from {dirName}", () =>
+                    items.Add(new MenuItem(dirName, $"Show songs from {dirName}", () =>
                     {
                         Application.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(dir, false)));
                     }));
@@ -135,7 +135,7 @@ public class MenuBarView : MenuBarv2
             }
             catch (Exception ex)
             {
-                MessageBox.ErrorQuery("Error", $"Failed to list playlists: {ex.Message}", "Ok");
+                MessageBox.ErrorQuery(Application.Instance, "Error", $"Failed to list playlists: {ex.Message}", "Ok");
             }
         }
 
@@ -172,11 +172,11 @@ public class MenuBarView : MenuBarv2
 
     private MainWindowView? FindMainWindow()
     {
-        if (Application.Top is null)
+        if (Application.TopRunnableView is null)
         {
             return null;
         }
-        return FindIn([.. Application.Top.SubViews]);
+        return FindIn([.. Application.TopRunnableView.SubViews]);
     }
 
     private MainWindowView? FindIn(IList<View> views)
@@ -208,7 +208,7 @@ public class MenuBarView : MenuBarv2
         sb.AppendLine(@" | |  | | |__| |____) | |____ ");
         sb.AppendLine(@" |_|  |_|\____/|_____/|______|");
         sb.AppendLine();
-        MessageBox.Query(50, 15, "About", sb.ToString(), "Ok");
+        MessageBox.Query(Application.Instance, 50, 15, "About", sb.ToString(), "Ok");
     }
 
     private static void ShowShortcuts()
@@ -225,7 +225,7 @@ public class MenuBarView : MenuBarv2
         sb.AppendLine("r  - Repeat mode");
         sb.AppendLine("s  - Shuffle mode");
 
-        MessageBox.Query(50, 15, "Shortcuts", sb.ToString(), "Ok");
+        MessageBox.Query(Application.Instance, 50, 15, "Shortcuts", sb.ToString(), "Ok");
     }
 
     private void ShowDownloadDialog()
@@ -324,7 +324,7 @@ public class MenuBarView : MenuBarv2
             // Validation
             if (string.IsNullOrWhiteSpace(urlTextField.Text?.ToString()))
             {
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", "URL cannot be empty", "Ok"));
+                Application.Invoke(() => MessageBox.ErrorQuery(Application.Instance, "Error", "URL cannot be empty", "Ok"));
                 return;
             }
 
@@ -384,7 +384,7 @@ public class MenuBarView : MenuBarv2
             if (result.IsFailure)
             {
                 progressLabel.Visible = false;
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", result.Error, "Ok"));
+                Application.Invoke(() => MessageBox.ErrorQuery(Application.Instance, "Error", result.Error, "Ok"));
             }
             else
             {
@@ -454,7 +454,7 @@ public class MenuBarView : MenuBarv2
             var url = urlTextField.Text?.ToString().Trim();
             if (string.IsNullOrWhiteSpace(url))
             {
-                Application.Invoke(() => MessageBox.ErrorQuery("Error", "URL cannot be empty", "Ok"));
+                Application.Invoke(() => MessageBox.ErrorQuery(Application.Instance, "Error", "URL cannot be empty", "Ok"));
                 return;
             }
 
