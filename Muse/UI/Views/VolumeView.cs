@@ -54,10 +54,10 @@ public sealed class VolumeView : ProgressBar
             if (e.View != this)
                 return;
 
-            if (e.Flags.HasFlag(MouseFlags.Button1Clicked) || e.Flags.HasFlag(MouseFlags.Button1Pressed))
+            if (e.Flags.HasFlag(MouseFlags.LeftButtonClicked) || e.Flags.HasFlag(MouseFlags.LeftButtonPressed))
             {
                 var width = (float)Viewport.Width;
-                var position = (float)e.Position.X;
+                var position = (float)(e.Position?.X ?? 0);
                 var fraction = Math.Clamp(position / width, 0f, 1f);
                 UpdateVolume(fraction);
             }

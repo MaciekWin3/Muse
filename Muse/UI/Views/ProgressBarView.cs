@@ -68,10 +68,10 @@ public sealed class ProgressBarView : ProgressBar
             if (e.View != this)
                 return;
 
-            if (e.Flags == MouseFlags.Button1Clicked)
+            if (e.Flags == MouseFlags.LeftButtonClicked)
             {
                 var width = (float)e.View.Frame.Width;
-                var position = (float)e.Position.X;
+                var position = (float)(e.Position?.X ?? 0);
                 var fraction = Math.Clamp(position / width, 0f, 1f);
 
                 Fraction = fraction;

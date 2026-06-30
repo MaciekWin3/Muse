@@ -10,7 +10,7 @@ using Terminal.Gui.Views;
 
 namespace Muse.App;
 
-public class MuseApp : Toplevel
+public class MuseApp : Window
 {
     private readonly IPlayerService player;
     private readonly IYoutubeDownloadService youtubeDownloadService;
@@ -24,6 +24,7 @@ public class MuseApp : Toplevel
         MainWindowView mainWindow, MenuBarView menuBarView, StatusBarView statusBarView,
         IUiEventBus uiEventBus)
     {
+        Title = "Muse";
         this.player = player;
         this.youtubeDownloadService = youtubeDownloadService;
         this.menuBarView = menuBarView;
@@ -50,7 +51,7 @@ public class MuseApp : Toplevel
 
     private void OnGlobalKeyDown(object? sender, Key key)
     {
-        if (Application.Top is not MuseApp || Application.Top.MostFocused is TextField)
+        if (MostFocused is TextField)
         {
             return;
         }

@@ -2,7 +2,7 @@
   <PropertyGroup>
 	<PackageId>MusePlayer</PackageId>
 	<OutputType>Exe</OutputType>
-	<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+	<TargetFrameworks>net10.0</TargetFrameworks>
 	<LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -29,11 +29,9 @@
 	</ItemGroup>
 	<ItemGroup>
     <PackageReference Include="LibVLCSharp" Version="3.10.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
-    <PackageReference Include="NAudio" Version="2.3.0" />
-    <PackageReference Include="Terminal.Gui" Version="2.0.0-develop.4636" />
-    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+    <PackageReference Include="Terminal.Gui" Version="2.4.16" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23.1" />
     <PackageReference Include="YoutubeExplode" Version="6.6.0" />
   </ItemGroup>
 </Project>

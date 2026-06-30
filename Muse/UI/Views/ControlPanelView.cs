@@ -57,7 +57,6 @@ public class ControlPanelView : FrameView
             Text = "|>",
             Height = ButtonsHeight,
             X = Pos.Center(),
-            ShadowStyle = ShadowStyle.None,
         };
 
         playPauseButton.Accepting += (s, e) =>
@@ -71,7 +70,6 @@ public class ControlPanelView : FrameView
             Text = "<",
             Height = ButtonsHeight,
             X = Pos.Left(playPauseButton) - (4 + 6),
-            ShadowStyle = ShadowStyle.None,
         };
 
         backButton.Accepting += (s, e) =>
@@ -85,7 +83,6 @@ public class ControlPanelView : FrameView
             Text = ">",
             Height = ButtonsHeight,
             X = Pos.Right(playPauseButton) + 4,
-            ShadowStyle = ShadowStyle.None,
         };
 
         forwardButton.Accepting += (s, e) =>
@@ -99,7 +96,6 @@ public class ControlPanelView : FrameView
             Text = "<<",
             Height = ButtonsHeight,
             X = Pos.Left(backButton) - (4 + 6),
-            ShadowStyle = ShadowStyle.None,
         };
 
         previousSongButton.Accepting += (s, e) =>
@@ -113,7 +109,6 @@ public class ControlPanelView : FrameView
             Text = ">>",
             Height = ButtonsHeight,
             X = Pos.Right(forwardButton) + 6,
-            ShadowStyle = ShadowStyle.None,
         };
 
         nextSongButton.Accepting += (s, e) =>
