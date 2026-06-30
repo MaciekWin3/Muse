@@ -32,7 +32,11 @@ public class MuseApp : Window
         this.statusBarView = statusBarView;
         this.uiEventBus = uiEventBus;
         Add(mainWindow, statusBarView, menuBarView);
-        Initialized += (s, e) => Application.KeyDown += OnGlobalKeyDown;
+        Initialized += (s, e) =>
+        {
+            Application.KeyDown += OnGlobalKeyDown;
+            uiEventBus.Publish(new PlaylistUpdated(mainWindow.Playlist));
+        };
 
         uiEventBus.Subscribe<ChangeThemeRequested>(msg =>
         {

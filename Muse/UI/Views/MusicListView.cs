@@ -36,8 +36,8 @@ public sealed class MusicListView : FrameView
         {
             Width = Dim.Fill(),
             Height = Dim.Fill(),
-            Source = new ListWrapper<string>(songNames)
         };
+        listView.SetSource(songNames);
 
         Add(listView);
 
@@ -74,11 +74,14 @@ public sealed class MusicListView : FrameView
                 {
                     songNames.Add(s.Name);
                 }
+                listView.SetSource(songNames);
+                listView.SelectedItem = songs.Count > 0 ? 0 : (int?)null;
+                listView.SetNeedsDraw();
             });
         });
         uiEventBus.Subscribe<ChangeSongIndexRequested>(async msg =>
         {
-            var count = listView.Source.Count;
+            var count = songs.Count;
 
             if (count <= 1 || msg.Offset == 0)
             {
@@ -113,11 +116,11 @@ public sealed class MusicListView : FrameView
 
             listView.SelectedItem = newIndex;
 
-                if (newIndex < 0 || newIndex >= songs.Count)
-                {
-                    MessageBox.ErrorQuery(Application.Instance, "Error", "Unable to obtain song info.", "Ok");
-                    return;
-                }
+            if (newIndex < 0 || newIndex >= songs.Count)
+            {
+                MessageBox.ErrorQuery(Application.Instance, "Error", "Unable to obtain song info.", "Ok");
+                return;
+            }
 
             var track = songs[newIndex];
             uiEventBus.Publish(new SongSelected(track));

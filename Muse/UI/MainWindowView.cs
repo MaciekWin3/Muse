@@ -49,8 +49,6 @@ public sealed class MainWindowView : Window
         RegisterControls();
         RegisterStyles();
 
-        uiEventBus.Publish(new PlaylistUpdated(Playlist));
-
         // Single persistent timer for tracking playback
         Application.AddTimeout(TimeSpan.FromMilliseconds(200), () =>
         {
