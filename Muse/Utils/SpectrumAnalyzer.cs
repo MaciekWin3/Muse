@@ -1,6 +1,5 @@
-using NAudio.Wave;
 using NAudio.Dsp;
-using System;
+using NAudio.Wave;
 
 namespace Muse.Utils;
 
@@ -9,7 +8,7 @@ public sealed class SpectrumAnalyzer : IDisposable
     private WasapiLoopbackCapture? capture;
     private readonly int fftLength = 1024; // Must be a power of 2
     private readonly SampleAggregator sampleAggregator;
-    
+
     public float[] SpectrumData { get; private set; } = new float[10];
 
     public SpectrumAnalyzer()
@@ -32,7 +31,8 @@ public sealed class SpectrumAnalyzer : IDisposable
 
     private void OnDataAvailable(object? sender, WaveInEventArgs e)
     {
-        if (capture == null) return;
+        if (capture == null)
+            return;
 
         int bytesPerSample = capture.WaveFormat.BitsPerSample / 8;
         int samplesRecorded = e.BytesRecorded / bytesPerSample;
@@ -50,7 +50,16 @@ public sealed class SpectrumAnalyzer : IDisposable
                 if (capture.WaveFormat.BitsPerSample == 16)
                     sample = BitConverter.ToInt16(e.Buffer, i * bytesPerSample) / 32768f;
                 else if (capture.WaveFormat.BitsPerSample == 24)
-                    sample = ((((e.Buffer[i * bytesPerSample + 2] << 16) | (e.Buffer[i * bytesPerSample + 1] << 8) | e.Buffer[i * bytesPerSample]) << 8) >> 8) / 8388608f;
+                    sample =
+                        (
+                            (
+                                (
+                                    (e.Buffer[i * bytesPerSample + 2] << 16)
+                                    | (e.Buffer[i * bytesPerSample + 1] << 8)
+                                    | e.Buffer[i * bytesPerSample]
+                                ) << 8
+                            ) >> 8
+                        ) / 8388608f;
             }
 
             sampleAggregator.Add(sample);
@@ -68,13 +77,16 @@ public sealed class SpectrumAnalyzer : IDisposable
             // Use a bit more linear mapping for low frequency bins to ensure they show up
             int startBin = (int)(usableBins * Math.Pow((double)i / bins, 2));
             int endBin = (int)(usableBins * Math.Pow((double)(i + 1) / bins, 2));
-            if (endBin <= startBin) endBin = startBin + 1;
+            if (endBin <= startBin)
+                endBin = startBin + 1;
 
             float max = 0;
             for (int j = startBin; j < endBin && j < e.Result.Length; j++)
             {
-                float magnitude = (float)Math.Sqrt(e.Result[j].X * e.Result[j].X + e.Result[j].Y * e.Result[j].Y);
-                if (magnitude > max) max = magnitude;
+                float magnitude = (float)
+                    Math.Sqrt(e.Result[j].X * e.Result[j].X + e.Result[j].Y * e.Result[j].Y);
+                if (magnitude > max)
+                    max = magnitude;
             }
 
             // High sensitivity boost + Logarithmic scaling
@@ -126,7 +138,9 @@ public class SampleAggregator
     {
         if (fftPos < fftLength)
         {
-            fftBuffer[fftPos].X = (float)(value * FastFourierTransform.HammingWindow(fftPos, fftLength));
+            fftBuffer[fftPos].X = (float)(
+                value * FastFourierTransform.HammingWindow(fftPos, fftLength)
+            );
             fftBuffer[fftPos].Y = 0;
             fftPos++;
         }
@@ -143,5 +157,6 @@ public class SampleAggregator
 public class FftEventArgs : EventArgs
 {
     public Complex[] Result { get; }
+
     public FftEventArgs(Complex[] result) => Result = result;
 }

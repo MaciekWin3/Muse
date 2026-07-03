@@ -9,15 +9,16 @@ using Terminal.Gui.App;
 using Terminal.Gui.Configuration;
 
 using var host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((context, services) =>
-    {
+    .ConfigureServices(
+        (context, services) =>
+        {
+            services.AddTerminalGuiViews();
 
-        services.AddTerminalGuiViews();
-
-        services.AddSingleton<IUiEventBus, UiEventBus>();
-        services.AddSingleton<IYoutubeDownloadService, YoutubeDownloadService>();
-        services.AddSingleton<IPlayerService, PlayerService>();
-    })
+            services.AddSingleton<IUiEventBus, UiEventBus>();
+            services.AddSingleton<IYoutubeDownloadService, YoutubeDownloadService>();
+            services.AddSingleton<IPlayerService, PlayerService>();
+        }
+    )
     .Build();
 
 using var scope = host.Services.CreateScope();
@@ -44,14 +45,12 @@ catch (Exception ex)
 
 void InitApp()
 {
+    using IApplication app = Application.Create();
+    app.Init();
     var museApp = services.GetRequiredService<MuseApp>();
-    
     ConfigurationManager.Enable(ConfigLocations.All);
     ThemeManager.Theme = "Anders";
-    Application.Init();
-    
-    Application.Run(museApp);
-    Application.Shutdown();
+    app.Run(museApp);
 }
 static void HandleMuseEnvironmentVariableMissing()
 {
@@ -61,7 +60,9 @@ static void HandleMuseEnvironmentVariableMissing()
     if (OperatingSystem.IsWindows())
     {
         Console.WriteLine("Please set it using the following command in PowerShell:");
-        Console.WriteLine("[Environment]::SetEnvironmentVariable(\"MUSE_DIRECTORY\", \"C:\\Path\\To\\Your\\Music\", \"User\")");
+        Console.WriteLine(
+            "[Environment]::SetEnvironmentVariable(\"MUSE_DIRECTORY\", \"C:\\Path\\To\\Your\\Music\", \"User\")"
+        );
     }
     else
     {
@@ -70,3 +71,4 @@ static void HandleMuseEnvironmentVariableMissing()
     }
     Environment.Exit(1);
 }
+

@@ -1,5 +1,4 @@
 ﻿using Muse.UI.Bus;
-using Terminal.Gui.App;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -18,7 +17,7 @@ public class StatusBarView : StatusBar
 
         AddShortcuts();
         RegisterBusHandlers();
-        
+
         UpdateShortcutsVisibility(AppMode.Shortcuts);
     }
 
@@ -73,7 +72,8 @@ public class StatusBarView : StatusBar
         {
             Title = "Switch Mode",
             Key = Key.Tab,
-            Action = () => {
+            Action = () =>
+            {
                 var currentTitle = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.StartsWith("Mode:"))?.Title ?? "";
                 var nextMode = currentTitle.Contains("Search") ? AppMode.Shortcuts : AppMode.Search;
                 uiEventBus.Publish(new ChangeModeRequested(nextMode));
@@ -83,11 +83,6 @@ public class StatusBarView : StatusBar
         Add(new Shortcut()
         {
             Title = "Mode: Shortcuts",
-        });
-
-        Add(new Shortcut()
-        {
-            Title = $"{Environment.OSVersion}"
         });
     }
 
@@ -107,7 +102,7 @@ public class StatusBarView : StatusBar
     {
         uiEventBus.Subscribe<ChangeModeRequested>(msg =>
         {
-            Application.Invoke(() =>
+            App?.Invoke(() =>
             {
                 var modeShortcut = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.StartsWith("Mode:"));
                 if (modeShortcut != null)
@@ -120,7 +115,7 @@ public class StatusBarView : StatusBar
 
         uiEventBus.Subscribe<VolumeChanged>(msg =>
         {
-            Application.Invoke(() =>
+            App?.Invoke(() =>
             {
                 var muteShortcut = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.Contains("Mute", StringComparison.OrdinalIgnoreCase));
                 if (muteShortcut != null)

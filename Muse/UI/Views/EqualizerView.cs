@@ -1,13 +1,11 @@
 using Muse.Player;
 using Muse.UI.Bus;
 using Muse.Utils;
-using Terminal.Gui;
-using Terminal.Gui.Views;
-using Terminal.Gui.Drawing;
-using Terminal.Gui.App;
-using Terminal.Gui.ViewBase;
 using System.Drawing;
 using System.Text;
+using Terminal.Gui.Drawing;
+using Terminal.Gui.ViewBase;
+using Terminal.Gui.Views;
 
 namespace Muse.UI.Views;
 
@@ -18,6 +16,7 @@ public sealed class EqualizerView : FrameView
     private readonly GraphView graphView;
     private readonly DiscoBarSeries discoBarSeries;
     private SpectrumAnalyzer? spectrumAnalyzer;
+    private object? timeoutToken; // Store token to cleanly cancel the timer
 
     public EqualizerView(IUiEventBus uiEventBus, IPlayerService playerService, Pos x, Pos y)
     {
@@ -43,20 +42,27 @@ public sealed class EqualizerView : FrameView
 
         Add(graphView);
 
-        Application.AddTimeout(TimeSpan.FromMilliseconds(50), () =>
+        // Wait until the view has been added to a layout tree so ApplicationContext is populated
+        Initialized += (s, e) =>
         {
-            if (playerService.State == PlaybackState.Playing)
+            if (App != null)
             {
-                EnsureSpectrumAnalyzer();
-                UpdateBars();
+                timeoutToken = App.AddTimeout(TimeSpan.FromMilliseconds(50), () =>
+                {
+                    if (playerService.State == PlaybackState.Playing)
+                    {
+                        EnsureSpectrumAnalyzer();
+                        UpdateBars();
+                    }
+                    else
+                    {
+                        StopSpectrumAnalyzer();
+                        ClearBars();
+                    }
+                    return true;
+                });
             }
-            else
-            {
-                StopSpectrumAnalyzer();
-                ClearBars();
-            }
-            return true;
-        });
+        };
     }
 
     private void EnsureSpectrumAnalyzer()
@@ -91,7 +97,6 @@ public sealed class EqualizerView : FrameView
         var data = spectrumAnalyzer.SpectrumData;
         if (data == null || data.Length == 0) return;
 
-        // Maintain some continuity in the bars if they already exist
         if (discoBarSeries.Bars.Count != data.Length)
         {
             discoBarSeries.Bars = data.ToList();
@@ -100,11 +105,10 @@ public sealed class EqualizerView : FrameView
         {
             for (int i = 0; i < data.Length; i++)
             {
-                // Less smoothing (0.1/0.9) to show fast changes
                 discoBarSeries.Bars[i] = (discoBarSeries.Bars[i] * 0.1f) + (data[i] * 0.9f);
             }
         }
-        
+
         graphView.SetNeedsDraw();
     }
 
@@ -112,6 +116,13 @@ public sealed class EqualizerView : FrameView
     {
         if (disposing)
         {
+            // Clean up the timeout token from the lifecycle loop
+            if (timeoutToken != null && App != null)
+            {
+                App.RemoveTimeout(timeoutToken);
+                timeoutToken = null;
+            }
+
             if (spectrumAnalyzer != null)
             {
                 spectrumAnalyzer.Dispose();
@@ -125,19 +136,6 @@ public sealed class EqualizerView : FrameView
 public class DiscoBarSeries : ISeries
 {
     public List<float> Bars { get; set; } = new();
-
-    private static readonly Terminal.Gui.Drawing.Color[] _colors = [
-        Terminal.Gui.Drawing.Color.BrightBlue,
-        Terminal.Gui.Drawing.Color.Blue,
-        Terminal.Gui.Drawing.Color.Cyan,
-        Terminal.Gui.Drawing.Color.BrightCyan,
-        Terminal.Gui.Drawing.Color.Green,
-        Terminal.Gui.Drawing.Color.BrightGreen,
-        Terminal.Gui.Drawing.Color.Yellow,
-        Terminal.Gui.Drawing.Color.BrightYellow,
-        Terminal.Gui.Drawing.Color.Red,
-        Terminal.Gui.Drawing.Color.BrightRed
-    ];
 
     public void DrawSeries(GraphView graph, Rectangle viewport, RectangleF graphSpace)
     {
@@ -154,7 +152,6 @@ public class DiscoBarSeries : ISeries
 
             for (int y = 0; y < height; y++)
             {
-                // Vertical gradient: higher bars get "hotter" colors
                 Terminal.Gui.Drawing.Color segmentColor;
                 if (y > viewport.Height * 0.8) segmentColor = Terminal.Gui.Drawing.Color.BrightRed;
                 else if (y > viewport.Height * 0.6) segmentColor = Terminal.Gui.Drawing.Color.BrightYellow;
@@ -164,13 +161,13 @@ public class DiscoBarSeries : ISeries
 
                 var attribute = new Terminal.Gui.Drawing.Attribute(segmentColor, Terminal.Gui.Drawing.Color.Black);
 
-                // Set the attribute on the driver before drawing
-                Application.Driver?.SetAttribute(attribute);
+                // Instead of Application.Driver, we apply the local rendering attribute 
+                // directly using GraphView's contextual override mechanisms or a direct SetAttribute block if available.
+                graph.SetAttribute(attribute);
 
-                // Use a block rune for bars
+                // Draw the block rune
                 graph.AddRune(x, viewport.Bottom - 1 - y, (Rune)'█');
-                
-                // Add some width if possible to fill space
+
                 for (int w = 1; w < barWidth - 1; w++)
                 {
                     if (x + w < viewport.Right)
