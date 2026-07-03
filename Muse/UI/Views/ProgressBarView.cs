@@ -1,6 +1,5 @@
 using Muse.Player;
 using Muse.UI.Bus;
-using Terminal.Gui.App;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
@@ -36,7 +35,7 @@ public sealed class ProgressBarView : ProgressBar
     {
         uiEventBus.Subscribe<SongLoading>(msg =>
         {
-            Application.Invoke(() =>
+            App?.Invoke(() =>
             {
                 Title = $"Loading: {msg.Name}...";
                 Fraction = 0;
@@ -45,7 +44,7 @@ public sealed class ProgressBarView : ProgressBar
 
         uiEventBus.Subscribe<TrackProgress>(msg =>
         {
-            Application.Invoke(() =>
+            App?.Invoke(() =>
             {
                 if (msg.TotalSeconds > 0)
                 {
@@ -63,15 +62,15 @@ public sealed class ProgressBarView : ProgressBar
 
     private void RegisterMouseHandler()
     {
-        Application.Mouse.MouseEvent += (sender, e) =>
+        MouseEvent += (sender, e) =>
         {
             if (e.View != this)
                 return;
 
-            if (e.Flags == MouseFlags.Button1Clicked)
+            if (e.Flags == MouseFlags.LeftButtonClicked)
             {
                 var width = (float)e.View.Frame.Width;
-                var position = (float)e.Position.X;
+                var position = (float)e.Position.Value.X;
                 var fraction = Math.Clamp(position / width, 0f, 1f);
 
                 Fraction = fraction;

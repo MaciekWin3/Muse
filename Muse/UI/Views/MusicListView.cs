@@ -1,8 +1,6 @@
 using Muse.Player;
 using Muse.UI.Bus;
-using Muse.Utils;
 using System.Collections.ObjectModel;
-using Terminal.Gui.App;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -53,7 +51,7 @@ public sealed class MusicListView : FrameView
 
         uiEventBus.Subscribe<SongSelected>(msg =>
         {
-            Application.Invoke(() =>
+            App?.Invoke(() =>
             {
                 int index = songs.FindIndex(t => t.Path == msg.Track.Path);
                 if (index >= 0)
@@ -65,7 +63,19 @@ public sealed class MusicListView : FrameView
 
         uiEventBus.Subscribe<PlaylistUpdated>(msg =>
         {
-            Application.Invoke(() =>
+            // If the view isn't attached to the visual tree yet, App will be null.
+            // During startup, this initial publish runs on the main thread anyway,
+            // so we can safely fall back to a direct sync update.
+            if (App != null)
+            {
+                App.Invoke(UpdateList);
+            }
+            else
+            {
+                UpdateList();
+            }
+
+            void UpdateList()
             {
                 songs = [.. msg.Songs];
                 songNames.Clear();
@@ -73,11 +83,12 @@ public sealed class MusicListView : FrameView
                 {
                     songNames.Add(s.Name);
                 }
-            });
+            }
         });
+
         uiEventBus.Subscribe<ChangeSongIndexRequested>(async msg =>
         {
-            var count = listView.Source.Count;
+            var count = listView.Source.Count - 1;
 
             if (count <= 1 || msg.Offset == 0)
             {
@@ -95,7 +106,7 @@ public sealed class MusicListView : FrameView
                 }
                 else
                 {
-                    return; // Don't wrap
+                    return;
                 }
             }
             else if (newIndex >= count)
@@ -104,17 +115,16 @@ public sealed class MusicListView : FrameView
                 {
                     newIndex = 0;
                 }
-                else
-                {
-                    return; // Don't wrap
-                }
             }
 
             listView.SelectedItem = newIndex;
 
             if (newIndex < 0 || newIndex >= songs.Count)
             {
-                MessageBox.ErrorQuery(Application.Instance, "Error", "Unable to obtain song info.", "Ok");
+                if (App != null)
+                {
+                    MessageBox.ErrorQuery(App, "Error", "Unable to obtain song info.", "Ok");
+                }
                 return;
             }
 
@@ -125,22 +135,21 @@ public sealed class MusicListView : FrameView
         uiEventBus.Subscribe<DeleteSongRequested>(_ =>
         {
             int selectedIndex = listView.SelectedItem ?? -1;
-            if (selectedIndex >= 0 && selectedIndex < songs.Count)
+            if (selectedIndex >= 0 && selectedIndex < songs.Count && App != null)
             {
                 var track = songs[selectedIndex];
                 if (track.Source != TrackSource.Local)
                 {
-                    // Cannot delete remote track from disk
                     return;
                 }
-                var result = MessageBox.Query(Application.Instance, "Delete", $"Are you sure you want to delete {track.Name}?", "Yes", "No");
+
+                var result = MessageBox.Query(App, "Delete", $"Are you sure you want to delete {track.Name}?", "Yes", "No");
                 if (result == 0) // Yes
                 {
                     try
                     {
                         if (File.Exists(track.Path))
                         {
-                            // If it's currently playing, we should probably stop it
                             playerService.Stop();
                             File.Delete(track.Path);
                             uiEventBus.Publish(new RefreshPlaylistsRequested());
@@ -148,22 +157,25 @@ public sealed class MusicListView : FrameView
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.ErrorQuery(Application.Instance, "Error", $"Failed to delete file: {ex.Message}", "Ok");
+                        MessageBox.ErrorQuery(App, "Error", $"Failed to delete file: {ex.Message}", "Ok");
                     }
                 }
             }
         });
-
     }
 
     private void RegisterEvents()
     {
-        listView.OpenSelectedItem += (sender, e) =>
+        listView.ValueChanged += (sender, e) =>
         {
-            int index = e.Item ?? -1;
-            if (index >= 0 && index < songs.Count)
+            if (e.NewValue.HasValue)
             {
-                uiEventBus.Publish(new SongSelected(songs[index]));
+                int index = e.NewValue.Value;
+
+                if (index >= 0 && index < songs.Count)
+                {
+                    uiEventBus.Publish(new SongSelected(songs[index]));
+                }
             }
         };
     }

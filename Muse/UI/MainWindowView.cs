@@ -2,7 +2,6 @@ using Muse.Player;
 using Muse.UI.Bus;
 using Muse.UI.Views;
 using Muse.Utils;
-using Terminal.Gui.App;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -36,6 +35,7 @@ public sealed class MainWindowView : Window
     private readonly Random _random = new();
     private readonly YoutubeClient _youtubeClient = new();
     private bool _isTransitioning = false;
+    private object? _trackTimeoutToken; // Captured reference for proper disposal
 
     public MainWindowView(IPlayerService player, IUiEventBus uiEventBus)
     {
@@ -51,11 +51,17 @@ public sealed class MainWindowView : Window
 
         uiEventBus.Publish(new PlaylistUpdated(Playlist));
 
-        // Single persistent timer for tracking playback
-        Application.AddTimeout(TimeSpan.FromMilliseconds(200), () =>
+        // Use the lifecycle event to register timeouts safely once the UI tree is attached
+        Initialized += (s, e) =>
         {
-            return TrackSong();
-        });
+            if (App != null)
+            {
+                _trackTimeoutToken = App.AddTimeout(TimeSpan.FromMilliseconds(200), () =>
+                {
+                    return TrackSong();
+                });
+            }
+        };
     }
 
     private void RegisterBusHandlers()
@@ -87,9 +93,12 @@ public sealed class MainWindowView : Window
             if (!loadResult.Success)
             {
                 uiEventBus.Publish(new PauseRequested());
-                Application.Invoke(() =>
+                App?.Invoke(() =>
                 {
-                    MessageBox.ErrorQuery(Application.Instance, "Error", $"Cannot load track: {loadResult.Error}", "OK");
+                    if (App != null)
+                    {
+                        MessageBox.ErrorQuery(App, "Error", $"Cannot load track: {loadResult.Error}", "OK");
+                    }
                     uiEventBus.Publish(new NextSongRequested());
                 });
                 return;
@@ -99,7 +108,13 @@ public sealed class MainWindowView : Window
             var result = player.Play();
             if (!result.Success)
             {
-                Application.Invoke(() => MessageBox.ErrorQuery(Application.Instance, "Error", result.Error, "OK"));
+                App?.Invoke(() =>
+                {
+                    if (App != null)
+                    {
+                        MessageBox.ErrorQuery(App, "Error", result.Error, "OK");
+                    }
+                });
             }
             else
             {
@@ -112,7 +127,10 @@ public sealed class MainWindowView : Window
             var songInfoResult = player.GetSongInfo();
             if (songInfoResult.IsFailure)
             {
-                MessageBox.ErrorQuery(Application.Instance, "Error", "Please select a song", "OK");
+                if (App != null)
+                {
+                    MessageBox.ErrorQuery(App, "Error", "Please select a song", "OK");
+                }
                 uiEventBus.Publish(new PauseRequested());
                 return;
             }
@@ -221,7 +239,7 @@ public sealed class MainWindowView : Window
                     throw new Exception("No tracks found in the provided YouTube source.");
                 }
 
-                Application.Invoke(() =>
+                App?.Invoke(() =>
                 {
                     Playlist = newTracks;
                     NumberOfSongs = Playlist.Count;
@@ -231,7 +249,13 @@ public sealed class MainWindowView : Window
             }
             catch (Exception ex)
             {
-                Application.Invoke(() => MessageBox.ErrorQuery(Application.Instance, "Error", $"Failed to load YouTube playlist: {ex.Message}", "OK"));
+                App?.Invoke(() =>
+                {
+                    if (App != null)
+                    {
+                        MessageBox.ErrorQuery(App, "Error", $"Failed to load YouTube playlist: {ex.Message}", "OK");
+                    }
+                });
             }
         });
 
@@ -283,7 +307,7 @@ public sealed class MainWindowView : Window
 
             var newPlaylist = MusicListHelper.GetMusicList(_currentDirectory).Select(Track.FromFileInfo).ToList();
 
-            Application.Invoke(() =>
+            App?.Invoke(() =>
             {
                 Playlist = newPlaylist;
                 NumberOfSongs = Playlist.Count;
@@ -300,7 +324,6 @@ public sealed class MainWindowView : Window
 
     public void RegisterControls()
     {
-        // Each sub-component has its own border.
         controlPanelView = new ControlPanelView(uiEventBus, 0, Pos.AnchorEnd(Globals.BUTTONS_FRAME_HEIGHT));
         Add(controlPanelView);
 
@@ -337,7 +360,7 @@ public sealed class MainWindowView : Window
         Y = 1; // Below MenuBar
         Width = Dim.Fill();
         Height = Dim.Fill() - 1; // Leave 1 row for StatusBar
-        BorderStyle = LineStyle.None; // Hide the border to avoid nested lines
+        BorderStyle = LineStyle.None;
     }
 
     private bool TrackSong()
@@ -350,7 +373,6 @@ public sealed class MainWindowView : Window
 
         var info = songInfoResult.Value;
 
-        // Notify the bus only if actually playing/paused
         if (player.State != PlaybackState.Stopped)
         {
             uiEventBus.Publish(new TrackProgress(info.Name, info.CurrentTime, info.TotalTimeInSeconds));
@@ -368,7 +390,6 @@ public sealed class MainWindowView : Window
 
             if (_playMode == PlayMode.None && !_isShuffle)
             {
-                // Check if it's the last song
                 var currentTrack = player.CurrentTrack;
                 if (currentTrack != null && Playlist.Count > 0 && Playlist.Last().Path == currentTrack.Path)
                 {
@@ -425,7 +446,6 @@ public sealed class MainWindowView : Window
 
         if (_isShuffle)
         {
-            // Cache 2 random tracks that are not current
             for (int i = 0; i < 2; i++)
             {
                 int randomIndex = _random.Next(Playlist.Count);
@@ -437,7 +457,6 @@ public sealed class MainWindowView : Window
         }
         else
         {
-            // Cache next 2 tracks
             for (int i = 1; i <= 2; i++)
             {
                 int nextIndex = currentIndex + i;
@@ -466,6 +485,13 @@ public sealed class MainWindowView : Window
     {
         if (disposing)
         {
+            // Drop timeout tracking tokens safely on cleanup
+            if (_trackTimeoutToken != null && App != null)
+            {
+                App.RemoveTimeout(_trackTimeoutToken);
+                _trackTimeoutToken = null;
+            }
+
             watcher.Dispose();
             _debounceCts?.Cancel();
             _debounceCts?.Dispose();

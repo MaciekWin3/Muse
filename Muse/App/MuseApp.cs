@@ -3,14 +3,13 @@ using Muse.UI;
 using Muse.UI.Bus;
 using Muse.UI.Views;
 using Muse.YouTube;
-using Terminal.Gui.App;
 using Terminal.Gui.Configuration;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
 namespace Muse.App;
 
-public class MuseApp : Runnable
+public class MuseApp : Window
 {
     private readonly IPlayerService player;
     private readonly IYoutubeDownloadService youtubeDownloadService;
@@ -30,16 +29,20 @@ public class MuseApp : Runnable
         this.mainWindow = mainWindow;
         this.statusBarView = statusBarView;
         this.uiEventBus = uiEventBus;
+
         Add(mainWindow, statusBarView, menuBarView);
-        Initialized += (s, e) => Application.KeyDown += OnGlobalKeyDown;
 
         uiEventBus.Subscribe<ChangeThemeRequested>(msg =>
         {
-            Application.Invoke(() =>
+            // Since we can't use static Application, invoke through the View's 
+            // built-in Application Context if available, or run inline safely.
+            void ApplyTheme()
             {
                 ThemeManager.Theme = msg.ThemeName;
                 ConfigurationManager.Apply();
-            });
+            }
+
+            ApplyTheme();
         });
 
         uiEventBus.Subscribe<ChangeModeRequested>(msg =>
@@ -48,11 +51,14 @@ public class MuseApp : Runnable
         });
     }
 
-    private void OnGlobalKeyDown(object? sender, Key key)
+    // Instead of subscribing/unsubscribing to a dirty global hook,
+    // override the View's built-in Preview or standard KeyDown method.
+    protected override bool OnKeyDown(Key key)
     {
-        if (Application.TopRunnableView is not MuseApp || Application.TopRunnableView?.MostFocused is TextField)
+        // If a child TextField has focus, let it steal input natively without bypassing it
+        if (MostFocused is TextField)
         {
-            return;
+            return base.OnKeyDown(key);
         }
 
         // Mode Toggling
@@ -61,52 +67,51 @@ public class MuseApp : Runnable
             currentMode = currentMode == AppMode.Search ? AppMode.Shortcuts : AppMode.Search;
             uiEventBus.Publish(new ChangeModeRequested(currentMode));
             key.Handled = true;
-            return;
+            return true;
         }
 
         if (currentMode != AppMode.Shortcuts)
         {
-            return;
+            return base.OnKeyDown(key);
         }
 
         if (key == Key.P)
         {
             uiEventBus.Publish(new TogglePlayRequested());
             key.Handled = true;
+            return true;
         }
-        else if (key == Key.N)
+        if (key == Key.N)
         {
             uiEventBus.Publish(new NextSongRequested());
             key.Handled = true;
+            return true;
         }
-        else if (key == Key.B)
+        if (key == Key.B)
         {
             uiEventBus.Publish(new PreviousSongRequested());
             key.Handled = true;
+            return true;
         }
-        else if (key == Key.D)
+        if (key == Key.D)
         {
             uiEventBus.Publish(new DeleteSongRequested());
             key.Handled = true;
+            return true;
         }
-        else if (key == Key.R)
+        if (key == Key.R)
         {
             uiEventBus.Publish(new TogglePlayModeRequested());
             key.Handled = true;
+            return true;
         }
-        else if (key == Key.S)
+        if (key == Key.S)
         {
             uiEventBus.Publish(new ShuffleToggleRequested());
             key.Handled = true;
+            return true;
         }
-    }
 
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            Application.KeyDown -= OnGlobalKeyDown;
-        }
-        base.Dispose(disposing);
+        return base.OnKeyDown(key);
     }
 }
