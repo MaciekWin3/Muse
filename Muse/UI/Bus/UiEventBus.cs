@@ -2,6 +2,13 @@
 
 namespace Muse.UI.Bus;
 
+public interface IUiEventBus
+{
+    void Publish<T>(T message);
+    void Subscribe<T>(Action<T> handler);
+    void Unsubscribe<T>(Action<T> handler);
+}
+
 public class UiEventBus : IUiEventBus
 {
     private readonly ConcurrentDictionary<Type, List<Delegate>> handlers = new();

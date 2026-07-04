@@ -21,7 +21,7 @@ public class PlayerService : IPlayerService, IDisposable
     {
         get
         {
-            if (_mediaPlayer == null) return PlaybackState.Stopped;
+            if (_mediaPlayer is null) return PlaybackState.Stopped;
             return _mediaPlayer.State switch
             {
                 VLCState.Playing => PlaybackState.Playing,
@@ -69,7 +69,7 @@ public class PlayerService : IPlayerService, IDisposable
                     var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId, token);
                     var audioOnlyStreams = manifest.GetAudioOnlyStreams();
                     var streamInfo = audioOnlyStreams.GetWithHighestBitrate();
-                    if (streamInfo == null)
+                    if (streamInfo is null)
                     {
                         return Result.Fail("No suitable audio-only stream was found for the YouTube video.");
                     }
@@ -120,7 +120,7 @@ public class PlayerService : IPlayerService, IDisposable
                     var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId, token);
                     var audioOnlyStreams = manifest.GetAudioOnlyStreams();
                     var streamInfo = audioOnlyStreams.GetWithHighestBitrate();
-                    if (streamInfo != null)
+                    if (streamInfo is not null)
                     {
                         track.StreamUrl = streamInfo.Url;
                     }
@@ -167,7 +167,7 @@ public class PlayerService : IPlayerService, IDisposable
         _volume = volume;
         Globals.Volume = volume;
         
-        if (_mediaPlayer != null)
+        if (_mediaPlayer is not null)
         {
             _mediaPlayer.Volume = (int)(volume * 100);
         }
@@ -194,7 +194,7 @@ public class PlayerService : IPlayerService, IDisposable
             if (length == -1) totalTime = 0;
             if (time == -1) currentTime = 0;
             
-            string name = CurrentTrack != null ? CurrentTrack.Name : "Unknown";
+            string name = CurrentTrack is not null ? CurrentTrack.Name : "Unknown";
 
             return Result.Ok(new SongInfo(name, totalTime, currentTime));
         }

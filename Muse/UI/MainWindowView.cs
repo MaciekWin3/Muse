@@ -54,7 +54,7 @@ public sealed class MainWindowView : Window
         // Use the lifecycle event to register timeouts safely once the UI tree is attached
         Initialized += (s, e) =>
         {
-            if (App != null)
+            if (App is not null)
             {
                 _trackTimeoutToken = App.AddTimeout(TimeSpan.FromMilliseconds(200), () =>
                 {
@@ -95,7 +95,7 @@ public sealed class MainWindowView : Window
                 uiEventBus.Publish(new PauseRequested());
                 App?.Invoke(() =>
                 {
-                    if (App != null)
+                    if (App is not null)
                     {
                         MessageBox.ErrorQuery(App, "Error", $"Cannot load track: {loadResult.Error}", "OK");
                     }
@@ -110,7 +110,7 @@ public sealed class MainWindowView : Window
             {
                 App?.Invoke(() =>
                 {
-                    if (App != null)
+                    if (App is not null)
                     {
                         MessageBox.ErrorQuery(App, "Error", result.Error, "OK");
                     }
@@ -127,7 +127,7 @@ public sealed class MainWindowView : Window
             var songInfoResult = player.GetSongInfo();
             if (songInfoResult.IsFailure)
             {
-                if (App != null)
+                if (App is not null)
                 {
                     MessageBox.ErrorQuery(App, "Error", "Please select a song", "OK");
                 }
@@ -251,7 +251,7 @@ public sealed class MainWindowView : Window
             {
                 App?.Invoke(() =>
                 {
-                    if (App != null)
+                    if (App is not null)
                     {
                         MessageBox.ErrorQuery(App, "Error", $"Failed to load YouTube playlist: {ex.Message}", "OK");
                     }
@@ -391,7 +391,7 @@ public sealed class MainWindowView : Window
             if (_playMode == PlayMode.None && !_isShuffle)
             {
                 var currentTrack = player.CurrentTrack;
-                if (currentTrack != null && Playlist.Count > 0 && Playlist.Last().Path == currentTrack.Path)
+                if (currentTrack is not null && Playlist.Count > 0 && Playlist.Last().Path == currentTrack.Path)
                 {
                     uiEventBus.Publish(new PauseRequested());
                     player.Stop();
@@ -432,12 +432,12 @@ public sealed class MainWindowView : Window
 
     private async Task PreCacheNextSongs()
     {
-        if (Playlist == null || Playlist.Count == 0) return;
+        if (Playlist is null || Playlist.Count == 0) return;
 
         var currentTrack = player.CurrentTrack;
         int currentIndex = -1;
 
-        if (currentTrack != null)
+        if (currentTrack is not null)
         {
             currentIndex = Playlist.FindIndex(t => t.Path == currentTrack.Path);
         }
@@ -486,7 +486,7 @@ public sealed class MainWindowView : Window
         if (disposing)
         {
             // Drop timeout tracking tokens safely on cleanup
-            if (_trackTimeoutToken != null && App != null)
+            if (_trackTimeoutToken is not null && App is not null)
             {
                 App.RemoveTimeout(_trackTimeoutToken);
                 _trackTimeoutToken = null;

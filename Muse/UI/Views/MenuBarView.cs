@@ -68,26 +68,26 @@ public class MenuBarView : MenuBar
         [
             new MenuBarItem("File", new MenuItem[]
             {
-                new MenuItem("Open", "Open music folder", () => OpenFolder()),
-                new MenuItem("Quit", "Quit application", () => App?.RequestStop()),
+                new("Open", "Open music folder", () => OpenFolder()),
+                new("Quit", "Quit application", () => App?.RequestStop()),
             }),
             new MenuBarItem("Options", new MenuItem[]
             {
-                new MenuItem("Playlists", "Manage playlists", null) { SubMenu = new Menu(GetPlaylistMenuItems()) },
-                new MenuItem("Theme", "Change application theme", null) { SubMenu = new Menu(GetThemeMenuItems()) },
-                new MenuItem("Download", "Download from YouTube", () => ShowDownloadDialog()),
-                new MenuItem("Stream Playlist", "Stream YouTube playlist", () => ShowStreamPlaylistDialog())
+                new("Playlists", "Manage playlists", null) { SubMenu = new Menu(GetPlaylistMenuItems()) },
+                new("Theme", "Change application theme", null) { SubMenu = new Menu(GetThemeMenuItems()) },
+                new("Download", "Download from YouTube", () => ShowDownloadDialog()),
+                new("Stream Playlist", "Stream YouTube playlist", () => ShowStreamPlaylistDialog())
             }),
             new MenuBarItem("Playback", new MenuItem[]
             {
-                new MenuItem(repeatTitle, "Toggle repeat mode (R)", () => uiEventBus.Publish(new TogglePlayModeRequested())),
-                new MenuItem(shuffleTitle, "Toggle shuffle mode (S)", () => uiEventBus.Publish(new ShuffleToggleRequested()))
+                new(repeatTitle, "Toggle repeat mode (R)", () => uiEventBus.Publish(new TogglePlayModeRequested())),
+                new(shuffleTitle, "Toggle shuffle mode (S)", () => uiEventBus.Publish(new ShuffleToggleRequested()))
             }),
             new MenuBarItem("Help", new MenuItem[]
             {
-                new MenuItem("About", "About Muse", () => ShowAsciiArt()),
-                new MenuItem("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
-                new MenuItem("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
+                new("About", "About Muse", () => ShowAsciiArt()),
+                new("Shortcuts", "Show shortcuts", () => ShowShortcuts()),
+                new("Website", "Muse Website", () => WebsiteHelper.OpenUrl("https://github.com/MaciekWin3/Muse"))
             })
         ];
     }
@@ -96,14 +96,14 @@ public class MenuBarView : MenuBar
     {
         return new MenuItem[]
         {
-            new MenuItem("Default", "Default theme", () => uiEventBus.Publish(new ChangeThemeRequested("Default"))),
-            new MenuItem("Dark", "Dark theme", () => uiEventBus.Publish(new ChangeThemeRequested("Dark"))),
-            new MenuItem("Light", "Light theme", () => uiEventBus.Publish(new ChangeThemeRequested("Light"))),
-            new MenuItem("TurboPascal 5", "TurboPascal 5 theme", () => uiEventBus.Publish(new ChangeThemeRequested("TurboPascal 5"))),
-            new MenuItem("Anders", "Anders theme", () => uiEventBus.Publish(new ChangeThemeRequested("Anders"))),
-            new MenuItem("Amber Phosphor", "Amber Phosphor theme", () => uiEventBus.Publish(new ChangeThemeRequested("Amber Phosphor"))),
-            new MenuItem("Green Phosphor", "Green Phosphor theme", () => uiEventBus.Publish(new ChangeThemeRequested("Green Phosphor"))),
-            new MenuItem("8-Bit", "8-Bit theme", () => uiEventBus.Publish(new ChangeThemeRequested("8-Bit")))
+            new("Default", "Default theme", () => uiEventBus.Publish(new ChangeThemeRequested("Default"))),
+            new("Dark", "Dark theme", () => uiEventBus.Publish(new ChangeThemeRequested("Dark"))),
+            new("Light", "Light theme", () => uiEventBus.Publish(new ChangeThemeRequested("Light"))),
+            new("TurboPascal 5", "TurboPascal 5 theme", () => uiEventBus.Publish(new ChangeThemeRequested("TurboPascal 5"))),
+            new("Anders", "Anders theme", () => uiEventBus.Publish(new ChangeThemeRequested("Anders"))),
+            new("Amber Phosphor", "Amber Phosphor theme", () => uiEventBus.Publish(new ChangeThemeRequested("Amber Phosphor"))),
+            new("Green Phosphor", "Green Phosphor theme", () => uiEventBus.Publish(new ChangeThemeRequested("Green Phosphor"))),
+            new("8-Bit", "8-Bit theme", () => uiEventBus.Publish(new ChangeThemeRequested("8-Bit")))
         };
     }
 
@@ -111,7 +111,7 @@ public class MenuBarView : MenuBar
     {
         var items = new List<MenuItem>
         {
-            new MenuItem("All Songs", "Show all songs", () =>
+            new("All Songs", "Show all songs", () =>
             {
                 App?.Invoke(() => uiEventBus.Publish(new ReloadPlaylist(Globals.MuseDirectory, true)));
             })
@@ -133,14 +133,14 @@ public class MenuBarView : MenuBar
             }
             catch (Exception ex)
             {
-                if (App != null)
+                if (App is not null)
                 {
                     MessageBox.ErrorQuery(App, "Error", $"Failed to list playlists: {ex.Message}", "Ok");
                 }
             }
         }
 
-        return items.ToArray();
+        return [.. items];
     }
 
     private void OpenFolder()
@@ -153,7 +153,7 @@ public class MenuBarView : MenuBar
             OpenMode = OpenMode.Directory
         };
 
-        if (App == null) return;
+        if (App is null) return;
 
         App.Run(fileExplorerDialog);
 
@@ -201,7 +201,7 @@ public class MenuBarView : MenuBar
 
     private void ShowAsciiArt()
     {
-        if (App == null) return;
+        if (App is null) return;
 
         var sb = new StringBuilder();
         sb.AppendLine("Muse - Terminal MP3 player");
@@ -218,7 +218,7 @@ public class MenuBarView : MenuBar
 
     private void ShowShortcuts()
     {
-        if (App == null) return;
+        if (App is null) return;
 
         var sb = new StringBuilder();
         sb.AppendLine("Global shortcuts:");
@@ -237,7 +237,7 @@ public class MenuBarView : MenuBar
 
     private void ShowDownloadDialog()
     {
-        if (App == null) return;
+        if (App is null) return;
 
         var urlLabel = new Label()
         {
@@ -279,7 +279,7 @@ public class MenuBarView : MenuBar
         {
             var subDirs = Directory.GetDirectories(Globals.MuseDirectory)
                 .Select(Path.GetFileName)
-                .Where(x => x != null)
+                .Where(x => x is not null)
                 .Select(x => x!)
                 .ToList();
             playlists.AddRange(subDirs);
@@ -354,7 +354,7 @@ public class MenuBarView : MenuBar
             var playlistId = PlaylistId.TryParse(url);
             bool isExplicitPlaylist = url.Contains("playlist?list=", StringComparison.OrdinalIgnoreCase);
 
-            if (playlistId != null && (videoId == null || isExplicitPlaylist))
+            if (playlistId is not null && (videoId is null || isExplicitPlaylist))
             {
                 var progress = new Progress<int>(p =>
                 {
@@ -415,7 +415,7 @@ public class MenuBarView : MenuBar
 
     private void ShowStreamPlaylistDialog()
     {
-        if (App == null) return;
+        if (App is null) return;
 
         var urlLabel = new Label()
         {

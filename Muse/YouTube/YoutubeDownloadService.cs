@@ -1,10 +1,17 @@
+using LibVLCSharp.Shared;
 using Muse.Utils;
-using Muse.YouTube;
 using YoutubeExplode;
+using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
-using YoutubeExplode.Playlists;
-using LibVLCSharp.Shared;
+
+namespace Muse.YouTube;
+
+public interface IYoutubeDownloadService
+{
+    Task<Result> DownloadAsync(string link, string? name = null, string relativePath = "", IProgress<double>? progress = null);
+    Task<Result> DownloadPlaylistAsync(string link, string relativePath = "", IProgress<int>? progress = null);
+}
 
 public class YoutubeDownloadService : IYoutubeDownloadService
 {
@@ -25,7 +32,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         try
         {
             var videoId = VideoId.TryParse(link);
-            if (videoId == null)
+            if (videoId is null)
             {
                 return Result.Fail($"Failed to parse Video ID from link: {link}");
             }
@@ -53,14 +60,14 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         try
         {
             var playlistId = PlaylistId.TryParse(link);
-            if (playlistId == null)
+            if (playlistId is null)
             {
                 return Result.Fail($"Failed to parse Playlist ID from link: {link}");
             }
 
             // Fetch playlist videos
             var videos = youtubeClient.Playlists.GetVideosAsync(playlistId.Value);
-            
+
             int current = 0;
             progress?.Report(current);
             await foreach (var video in videos)
@@ -153,7 +160,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
 
             string fileName = string.IsNullOrWhiteSpace(name) ? video.Title : name;
             fileName = SanitizeFileName(fileName);
-            
+
             // Use .m4a extension for MP4 audio-only streams, as it's more widely recognized as audio.
             string extension = audioStream.Container == Container.Mp4 ? "m4a" : audioStream.Container.Name;
 
@@ -191,7 +198,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         }
         catch (Exception ex)
         {
-            if (outputPath != null && File.Exists(outputPath))
+            if (outputPath is not null && File.Exists(outputPath))
             {
                 try { File.Delete(outputPath); } catch { }
             }

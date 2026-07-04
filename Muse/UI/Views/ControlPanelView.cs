@@ -51,75 +51,20 @@ public class ControlPanelView : FrameView
 
     private void RegisterButtons()
     {
-        playPauseButton = new Button()
-        {
-            Text = "|>",
-            Height = ButtonsHeight,
-            X = Pos.Center(),
-        };
+        playPauseButton = new Button { Text = "|>", Height = ButtonsHeight, X = Pos.Center() };
 
-        playPauseButton.Accepting += (s, e) =>
-        {
-            uiBus.Publish(new TogglePlayRequested());
-            e.Handled = true;
-        };
+        backButton = new Button { Text = "<", Height = ButtonsHeight, X = Pos.Left(playPauseButton) - 10 };
+        forwardButton = new Button { Text = ">", Height = ButtonsHeight, X = Pos.Right(playPauseButton) + 4 };
 
-        backButton = new Button()
-        {
-            Text = "<",
-            Height = ButtonsHeight,
-            X = Pos.Left(playPauseButton) - (4 + 6),
-        };
+        previousSongButton = new Button { Text = "<<", Height = ButtonsHeight, X = Pos.Left(backButton) - 10 };
+        nextSongButton = new Button { Text = ">>", Height = ButtonsHeight, X = Pos.Right(forwardButton) + 6 };
 
-        backButton.Accepting += (s, e) =>
-        {
-            uiBus.Publish(new SeekRelativeRequested(-10));
-            e.Handled = true;
-        };
+        playPauseButton.Accepting += (s, e) => { uiBus.Publish(new TogglePlayRequested()); e.Handled = true; };
+        backButton.Accepting += (s, e) => { uiBus.Publish(new SeekRelativeRequested(-10)); e.Handled = true; };
+        forwardButton.Accepting += (s, e) => { uiBus.Publish(new SeekRelativeRequested(10)); e.Handled = true; };
+        previousSongButton.Accepting += (s, e) => { uiBus.Publish(new PreviousSongRequested()); e.Handled = true; };
+        nextSongButton.Accepting += (s, e) => { uiBus.Publish(new NextSongRequested()); e.Handled = true; };
 
-        forwardButton = new Button()
-        {
-            Text = ">",
-            Height = ButtonsHeight,
-            X = Pos.Right(playPauseButton) + 4,
-        };
-
-        forwardButton.Accepting += (s, e) =>
-        {
-            uiBus.Publish(new SeekRelativeRequested(+10));
-            e.Handled = true;
-        };
-
-        previousSongButton = new Button()
-        {
-            Text = "<<",
-            Height = ButtonsHeight,
-            X = Pos.Left(backButton) - (4 + 6),
-        };
-
-        previousSongButton.Accepting += (s, e) =>
-        {
-            uiBus.Publish(new PreviousSongRequested());
-            e.Handled = true;
-        };
-
-        nextSongButton = new Button()
-        {
-            Text = ">>",
-            Height = ButtonsHeight,
-            X = Pos.Right(forwardButton) + 6,
-        };
-
-        nextSongButton.Accepting += (s, e) =>
-        {
-            uiBus.Publish(new NextSongRequested());
-            e.Handled = true;
-        };
-
-        Add(previousSongButton);
-        Add(backButton);
-        Add(playPauseButton);
-        Add(forwardButton);
-        Add(nextSongButton);
+        Add(previousSongButton, backButton, playPauseButton, forwardButton, nextSongButton);
     }
 }

@@ -11,17 +11,13 @@ namespace Muse.UI.Views;
 
 public sealed class EqualizerView : FrameView
 {
-    private readonly IUiEventBus uiEventBus;
-    private readonly IPlayerService playerService;
     private readonly GraphView graphView;
     private readonly DiscoBarSeries discoBarSeries;
     private SpectrumAnalyzer? spectrumAnalyzer;
-    private object? timeoutToken; // Store token to cleanly cancel the timer
+    private object? timeoutToken;
 
     public EqualizerView(IUiEventBus uiEventBus, IPlayerService playerService, Pos x, Pos y)
     {
-        this.uiEventBus = uiEventBus;
-        this.playerService = playerService;
         X = x;
         Y = y;
         Title = "Equalizer";
@@ -45,11 +41,11 @@ public sealed class EqualizerView : FrameView
         // Wait until the view has been added to a layout tree so ApplicationContext is populated
         Initialized += (s, e) =>
         {
-            if (App != null)
+            if (App is not null)
             {
                 timeoutToken = App.AddTimeout(TimeSpan.FromMilliseconds(50), () =>
                 {
-                    if (playerService.State == PlaybackState.Playing)
+                    if (playerService.State is PlaybackState.Playing)
                     {
                         EnsureSpectrumAnalyzer();
                         UpdateBars();
@@ -67,19 +63,13 @@ public sealed class EqualizerView : FrameView
 
     private void EnsureSpectrumAnalyzer()
     {
-        if (spectrumAnalyzer == null)
-        {
-            spectrumAnalyzer = new SpectrumAnalyzer();
-        }
+        spectrumAnalyzer ??= new SpectrumAnalyzer();
     }
 
     private void StopSpectrumAnalyzer()
     {
-        if (spectrumAnalyzer != null)
-        {
-            spectrumAnalyzer.Dispose();
-            spectrumAnalyzer = null;
-        }
+        spectrumAnalyzer?.Dispose();
+        spectrumAnalyzer = null;
     }
 
     private void ClearBars()
@@ -93,13 +83,20 @@ public sealed class EqualizerView : FrameView
 
     private void UpdateBars()
     {
-        if (spectrumAnalyzer == null) return;
-        var data = spectrumAnalyzer.SpectrumData;
-        if (data == null || data.Length == 0) return;
+        if (spectrumAnalyzer is null)
+        {
+            return;
+        }
+
+        // Pattern matching check for null or empty array
+        if (spectrumAnalyzer.SpectrumData is not { Length: > 0 } data)
+        {
+            return;
+        }
 
         if (discoBarSeries.Bars.Count != data.Length)
         {
-            discoBarSeries.Bars = data.ToList();
+            discoBarSeries.Bars = [.. data];
         }
         else
         {
@@ -116,53 +113,61 @@ public sealed class EqualizerView : FrameView
     {
         if (disposing)
         {
-            // Clean up the timeout token from the lifecycle loop
-            if (timeoutToken != null && App != null)
+            if (timeoutToken is not null && App is not null)
             {
                 App.RemoveTimeout(timeoutToken);
                 timeoutToken = null;
             }
 
-            if (spectrumAnalyzer != null)
-            {
-                spectrumAnalyzer.Dispose();
-                spectrumAnalyzer = null;
-            }
+            spectrumAnalyzer?.Dispose();
+            spectrumAnalyzer = null;
         }
+
         base.Dispose(disposing);
     }
 }
 
 public class DiscoBarSeries : ISeries
 {
-    public List<float> Bars { get; set; } = new();
+    public List<float> Bars { get; set; } = [];
 
     public void DrawSeries(GraphView graph, Rectangle viewport, RectangleF graphSpace)
     {
-        if (Bars == null || Bars.Count == 0) return;
+        // Pattern matching guard clause
+        if (Bars is not { Count: > 0 })
+        {
+            return;
+        }
 
         var barWidth = viewport.Width / Bars.Count;
-        if (barWidth <= 0) barWidth = 1;
+        if (barWidth <= 0)
+        {
+            barWidth = 1;
+        }
 
         for (int i = 0; i < Bars.Count; i++)
         {
             var x = viewport.Left + (i * barWidth);
             var height = (int)(Bars[i] * viewport.Height / 100);
-            if (height > viewport.Height) height = viewport.Height;
+
+            if (height > viewport.Height)
+            {
+                height = viewport.Height;
+            }
 
             for (int y = 0; y < height; y++)
             {
-                Terminal.Gui.Drawing.Color segmentColor;
-                if (y > viewport.Height * 0.8) segmentColor = Terminal.Gui.Drawing.Color.BrightRed;
-                else if (y > viewport.Height * 0.6) segmentColor = Terminal.Gui.Drawing.Color.BrightYellow;
-                else if (y > viewport.Height * 0.4) segmentColor = Terminal.Gui.Drawing.Color.BrightGreen;
-                else if (y > viewport.Height * 0.2) segmentColor = Terminal.Gui.Drawing.Color.BrightCyan;
-                else segmentColor = Terminal.Gui.Drawing.Color.BrightBlue;
+                // Refactored to a relational pattern matching switch expression
+                Terminal.Gui.Drawing.Color segmentColor = y switch
+                {
+                    _ when y > viewport.Height * 0.8 => Terminal.Gui.Drawing.Color.BrightRed,
+                    _ when y > viewport.Height * 0.6 => Terminal.Gui.Drawing.Color.BrightYellow,
+                    _ when y > viewport.Height * 0.4 => Terminal.Gui.Drawing.Color.BrightGreen,
+                    _ when y > viewport.Height * 0.2 => Terminal.Gui.Drawing.Color.BrightCyan,
+                    _ => Terminal.Gui.Drawing.Color.BrightBlue
+                };
 
                 var attribute = new Terminal.Gui.Drawing.Attribute(segmentColor, Terminal.Gui.Drawing.Color.Black);
-
-                // Instead of Application.Driver, we apply the local rendering attribute 
-                // directly using GraphView's contextual override mechanisms or a direct SetAttribute block if available.
                 graph.SetAttribute(attribute);
 
                 // Draw the block rune

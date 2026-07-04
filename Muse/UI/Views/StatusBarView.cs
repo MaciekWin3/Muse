@@ -105,7 +105,7 @@ public class StatusBarView : StatusBar
             App?.Invoke(() =>
             {
                 var modeShortcut = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.StartsWith("Mode:"));
-                if (modeShortcut != null)
+                if (modeShortcut is not null)
                 {
                     modeShortcut.Title = $"Mode: {msg.NewMode}";
                 }
@@ -118,7 +118,7 @@ public class StatusBarView : StatusBar
             App?.Invoke(() =>
             {
                 var muteShortcut = SubViews.OfType<Shortcut>().FirstOrDefault(s => s.Title.Contains("Mute", StringComparison.OrdinalIgnoreCase));
-                if (muteShortcut != null)
+                if (muteShortcut is not null)
                 {
                     muteShortcut.Title = msg.Volume == 0f ? "Unmute" : "Mute";
                 }

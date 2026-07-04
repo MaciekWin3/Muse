@@ -66,7 +66,7 @@ public sealed class MusicListView : FrameView
             // If the view isn't attached to the visual tree yet, App will be null.
             // During startup, this initial publish runs on the main thread anyway,
             // so we can safely fall back to a direct sync update.
-            if (App != null)
+            if (App is not null)
             {
                 App.Invoke(UpdateList);
             }
@@ -121,7 +121,7 @@ public sealed class MusicListView : FrameView
 
             if (newIndex < 0 || newIndex >= songs.Count)
             {
-                if (App != null)
+                if (App is not null)
                 {
                     MessageBox.ErrorQuery(App, "Error", "Unable to obtain song info.", "Ok");
                 }
@@ -135,7 +135,7 @@ public sealed class MusicListView : FrameView
         uiEventBus.Subscribe<DeleteSongRequested>(_ =>
         {
             int selectedIndex = listView.SelectedItem ?? -1;
-            if (selectedIndex >= 0 && selectedIndex < songs.Count && App != null)
+            if (selectedIndex >= 0 && selectedIndex < songs.Count && App is not null)
             {
                 var track = songs[selectedIndex];
                 if (track.Source != TrackSource.Local)

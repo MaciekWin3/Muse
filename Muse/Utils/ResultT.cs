@@ -14,7 +14,7 @@
 
         public T GetValue()
         {
-            if (Success && Value != null)
+            if (Success && Value is not null)
             {
                 return Value;
             }

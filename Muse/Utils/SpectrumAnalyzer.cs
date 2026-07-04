@@ -31,7 +31,7 @@ public sealed class SpectrumAnalyzer : IDisposable
 
     private void OnDataAvailable(object? sender, WaveInEventArgs e)
     {
-        if (capture == null)
+        if (capture is null)
             return;
 
         int bytesPerSample = capture.WaveFormat.BitsPerSample / 8;
@@ -103,7 +103,7 @@ public sealed class SpectrumAnalyzer : IDisposable
         var localCapture = capture;
         capture = null;
 
-        if (localCapture == null)
+        if (localCapture is null)
         {
             return;
         }
