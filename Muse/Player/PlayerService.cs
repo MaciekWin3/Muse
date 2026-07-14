@@ -1,9 +1,25 @@
+using LibVLCSharp.Shared;
 using Muse.Utils;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
-using LibVLCSharp.Shared;
 
 namespace Muse.Player;
+
+public interface IPlayerService
+{
+    public Track? CurrentTrack { get; }
+    public string? CurrentFilePath { get; }
+    public PlaybackState State { get; }
+    Task<Result> Load(Track track);
+    Result Play();
+    Result Pause();
+    Result Stop();
+    Result SetVolume(float volume);
+    Result<SongInfo> GetSongInfo();
+    Result ChangeCurrentSongTime(int seconds);
+    Task PreCacheNextSongs(IEnumerable<Track> tracks);
+    void Dispose();
+}
 
 public class PlayerService : IPlayerService, IDisposable
 {
@@ -16,12 +32,16 @@ public class PlayerService : IPlayerService, IDisposable
 
     public Track? CurrentTrack { get; private set; }
     public string? CurrentFilePath { get; private set; }
-    
+
     public PlaybackState State
     {
         get
         {
-            if (_mediaPlayer is null) return PlaybackState.Stopped;
+            if (_mediaPlayer is null)
+            {
+                return PlaybackState.Stopped;
+            }
+
             return _mediaPlayer.State switch
             {
                 VLCState.Playing => PlaybackState.Playing,
@@ -36,8 +56,10 @@ public class PlayerService : IPlayerService, IDisposable
         Core.Initialize();
         _libVLC = new LibVLC("--no-video", "--quiet", "--no-stats");
         _volume = Globals.Volume;
-        _mediaPlayer = new MediaPlayer(_libVLC);
-        _mediaPlayer.Volume = (int)(_volume * 100);
+        _mediaPlayer = new MediaPlayer(_libVLC)
+        {
+            Volume = (int)(_volume * 100)
+        };
     }
 
     public async Task<Result> Load(Track track)
@@ -80,7 +102,7 @@ public class PlayerService : IPlayerService, IDisposable
 
             token.ThrowIfCancellationRequested();
 
-            var media = track.Source == TrackSource.YouTube 
+            var media = track.Source == TrackSource.YouTube
                 ? new Media(_libVLC, new Uri(urlToLoad))
                 : new Media(_libVLC, urlToLoad, FromType.FromPath);
 
@@ -111,8 +133,8 @@ public class PlayerService : IPlayerService, IDisposable
         {
             if (token.IsCancellationRequested) break;
 
-            if (track.Source == TrackSource.YouTube && 
-                !string.IsNullOrEmpty(track.YouTubeId) && 
+            if (track.Source == TrackSource.YouTube &&
+                !string.IsNullOrEmpty(track.YouTubeId) &&
                 string.IsNullOrEmpty(track.StreamUrl))
             {
                 try
@@ -166,18 +188,13 @@ public class PlayerService : IPlayerService, IDisposable
     {
         _volume = volume;
         Globals.Volume = volume;
-        
+
         if (_mediaPlayer is not null)
         {
             _mediaPlayer.Volume = (int)(volume * 100);
         }
-        
-        return Result.Ok();
-    }
 
-    public Result<int> GetVolume()
-    {
-        return Result.Ok((int)(_volume * 10));
+        return Result.Ok();
     }
 
     public Result<SongInfo> GetSongInfo()
@@ -186,14 +203,21 @@ public class PlayerService : IPlayerService, IDisposable
         {
             var length = _mediaPlayer.Length; // in ms
             var time = _mediaPlayer.Time; // in ms
-            
+
             var totalTime = length > 0 ? (int)(length / 1000) : 0;
             var currentTime = time > 0 ? (int)(time / 1000) : 0;
-            
+
             // if streaming, length might be -1 or 0 initially
-            if (length == -1) totalTime = 0;
-            if (time == -1) currentTime = 0;
-            
+            if (length == -1)
+            {
+                totalTime = 0;
+            }
+
+            if (time == -1)
+            {
+                currentTime = 0;
+            }
+
             string name = CurrentTrack is not null ? CurrentTrack.Name : "Unknown";
 
             return Result.Ok(new SongInfo(name, totalTime, currentTime));

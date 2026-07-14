@@ -48,7 +48,12 @@ void InitApp()
     using IApplication app = Application.Create();
     app.Init();
     var museApp = services.GetRequiredService<MuseApp>();
+    // TuiConfigurationBuilder (the suggested replacement) is an undocumented,
+    // still-evolving API in this Terminal.Gui prerelease. Stay on the static
+    // ConfigurationManager facade until a migration guide is published.
+#pragma warning disable CS0618
     ConfigurationManager.Enable(ConfigLocations.All);
+#pragma warning restore CS0618
     ThemeManager.Theme = "Anders";
     app.Run(museApp);
 }

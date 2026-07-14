@@ -23,7 +23,6 @@ public sealed class MainWindowView : Window
     private EqualizerView equalizerView = null!;
 
     private readonly FileSystemWatcher watcher = new();
-    private int NumberOfSongs { get; set; }
     public List<Track> Playlist { get; set; }
 
     private readonly IUiEventBus uiEventBus;
@@ -44,7 +43,6 @@ public sealed class MainWindowView : Window
         _currentDirectory = Globals.MuseDirectory;
 
         Playlist = MusicListHelper.GetMusicList(_currentDirectory).Select(Track.FromFileInfo).ToList();
-        NumberOfSongs = Playlist.Count;
         RegisterBusHandlers();
         RegisterControls();
         RegisterStyles();
@@ -242,7 +240,6 @@ public sealed class MainWindowView : Window
                 App?.Invoke(() =>
                 {
                     Playlist = newTracks;
-                    NumberOfSongs = Playlist.Count;
                     uiEventBus.Publish(new PlaylistUpdated(Playlist));
                     _ = Task.Run(() => PreCacheNextSongs());
                 });
@@ -310,7 +307,6 @@ public sealed class MainWindowView : Window
             App?.Invoke(() =>
             {
                 Playlist = newPlaylist;
-                NumberOfSongs = Playlist.Count;
                 uiEventBus.Publish(new PlaylistUpdated(Playlist));
                 uiEventBus.Publish(new RefreshPlaylistsRequested());
             });
@@ -406,16 +402,6 @@ public sealed class MainWindowView : Window
         return true;
     }
 
-    private static string FormatTime(int current, int total)
-    {
-        int cm = current / 60;
-        int cs = current % 60;
-        int tm = total / 60;
-        int ts = total % 60;
-
-        return $" {cm}:{cs:00} / {tm}:{ts:00}";
-    }
-
     public void ReloadPlaylist(string path, bool recursive = true)
     {
         if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
@@ -427,7 +413,6 @@ public sealed class MainWindowView : Window
         watcher.Path = Globals.MuseDirectory;
 
         Playlist = MusicListHelper.GetMusicList(path, recursive).Select(Track.FromFileInfo).ToList();
-        NumberOfSongs = Playlist.Count;
     }
 
     private async Task PreCacheNextSongs()
