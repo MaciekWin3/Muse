@@ -226,11 +226,13 @@ public class MenuBarView : MenuBar
         sb.AppendLine("Mute: Backspace");
         sb.AppendLine();
         sb.AppendLine("Player shortcuts:");
-        sb.AppendLine("p  - Play/Pause");
-        sb.AppendLine("n  - Next track");
-        sb.AppendLine("b  - Previous track");
-        sb.AppendLine("r  - Repeat mode");
-        sb.AppendLine("s  - Shuffle mode");
+        sb.AppendLine("p    - Play/Pause");
+        sb.AppendLine("n    - Next track");
+        sb.AppendLine("b    - Previous track");
+        sb.AppendLine("d    - Delete track");
+        sb.AppendLine("r    - Repeat mode");
+        sb.AppendLine("s    - Shuffle mode");
+        sb.AppendLine("Tab  - Switch Shortcuts/Search mode");
 
         MessageBox.Query(App, 50, 15, "Shortcuts", sb.ToString(), "Ok");
     }

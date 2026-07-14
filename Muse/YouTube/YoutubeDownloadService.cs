@@ -173,11 +173,18 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             }
             catch (Exception ex)
             {
+                // The download may have already created a partial/empty file on disk before
+                // throwing (e.g. connection reset mid-transfer) - remove it so it isn't left
+                // behind as a broken "song".
+                if (File.Exists(outputPath))
+                {
+                    try { File.Delete(outputPath); } catch { }
+                }
                 return Result.Fail($"Failed to download audio stream to {outputPath}: {ex.Message}");
             }
 
             // Validation: Ensure the file is playable
-            var validationResult = ValidateAudioFile(outputPath);
+            var validationResult = await ValidateAudioFile(outputPath);
             if (validationResult.IsFailure)
             {
                 try
@@ -206,7 +213,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         }
     }
 
-    private static Result ValidateAudioFile(string filePath)
+    private static async Task<Result> ValidateAudioFile(string filePath)
     {
         if (!File.Exists(filePath))
         {
@@ -222,7 +229,15 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         {
             using var libvlc = new LibVLC();
             using var media = new Media(libvlc, filePath, FromType.FromPath);
-            media.Parse(MediaParseOptions.ParseLocal);
+
+            // Parse is asynchronous - it must be awaited before Duration is populated,
+            // otherwise Duration reads as unset (<= 0) even for a perfectly valid file.
+            var status = await media.Parse(MediaParseOptions.ParseLocal, 15000);
+            if (status != MediaParsedStatus.Done)
+            {
+                return Result.Fail($"Failed to parse downloaded file (status: {status}).");
+            }
+
             if (media.Duration <= 0)
             {
                 return Result.Fail("Downloaded file has zero duration.");
@@ -235,7 +250,6 @@ public class YoutubeDownloadService : IYoutubeDownloadService
 
         return Result.Ok();
     }
-
 
     private static string SanitizeFileName(string fileName)
     {

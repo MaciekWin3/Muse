@@ -50,10 +50,10 @@ public sealed class VolumeView : ProgressBar
         if (mouse.Flags.HasFlag(MouseFlags.LeftButtonClicked) ||
             mouse.Flags.HasFlag(MouseFlags.LeftButtonPressed))
         {
-            if (Viewport.Width > 0)
+            if (Viewport.Width > 0 && mouse.Position is { } mousePosition)
             {
                 // Correctly translate the X column coordinate to a progress percentage
-                float newFraction = (float)mouse.Position.Value.X / Viewport.Width;
+                float newFraction = (float)mousePosition.X / Viewport.Width;
                 UpdateVolume(Math.Clamp(newFraction, 0.0f, 1.0f));
             }
 
@@ -84,11 +84,10 @@ public sealed class VolumeView : ProgressBar
             if (e.View != this)
                 return;
 
-            if (e.Flags.HasFlag(MouseFlags.LeftButtonClicked))
+            if (e.Flags.HasFlag(MouseFlags.LeftButtonClicked) && e.Position is { } position)
             {
                 var width = (float)Viewport.Width;
-                var position = (float)e.Position.Value.X;
-                var fraction = Math.Clamp(position / width, 0f, 1f);
+                var fraction = Math.Clamp(position.X / width, 0f, 1f);
                 UpdateVolume(fraction);
             }
         };

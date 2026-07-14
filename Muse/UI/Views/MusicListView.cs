@@ -86,9 +86,9 @@ public sealed class MusicListView : FrameView
             }
         });
 
-        uiEventBus.Subscribe<ChangeSongIndexRequested>(async msg =>
+        uiEventBus.Subscribe<ChangeSongIndexRequested>(msg =>
         {
-            var count = listView.Source.Count - 1;
+            var count = songs.Count;
 
             if (count <= 1 || msg.Offset == 0)
             {
