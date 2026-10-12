@@ -1,7 +1,6 @@
 using LibVLCSharp.Shared;
 using Microsoft.Extensions.Logging;
 using Muse.Utils;
-using YoutubeExplode;
 using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
@@ -10,19 +9,19 @@ namespace Muse.YouTube;
 
 public interface IYoutubeDownloadService
 {
-    Task<Result> DownloadAsync(string link, string? name = null, string relativePath = "", IProgress<double>? progress = null);
-    Task<Result> DownloadPlaylistAsync(string link, string relativePath = "", IProgress<int>? progress = null);
+    Task<Result> DownloadAsync(string link, string? name = null, string relativePath = "", IProgress<double>? progress = null, CancellationToken cancellationToken = default);
+    Task<Result> DownloadPlaylistAsync(string link, string relativePath = "", IProgress<int>? progress = null, CancellationToken cancellationToken = default);
 }
 
 public class YoutubeDownloadService : IYoutubeDownloadService
 {
-    private readonly YoutubeClient youtubeClient;
+    private readonly IYoutubeGateway youtubeGateway;
     private readonly ILogger<YoutubeDownloadService> logger;
 
-    public YoutubeDownloadService(ILogger<YoutubeDownloadService> logger)
+    public YoutubeDownloadService(ILogger<YoutubeDownloadService> logger, IYoutubeGateway youtubeGateway)
     {
         this.logger = logger;
-        youtubeClient = new YoutubeClient();
+        this.youtubeGateway = youtubeGateway;
         try
         {
             Core.Initialize();
@@ -30,7 +29,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         catch { }
     }
 
-    public async Task<Result> DownloadAsync(string link, string? name = null, string relativePath = "", IProgress<double>? progress = null)
+    public async Task<Result> DownloadAsync(string link, string? name = null, string relativePath = "", IProgress<double>? progress = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -43,14 +42,14 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             IVideo video;
             try
             {
-                video = await youtubeClient.Videos.GetAsync(videoId.Value);
+                video = await youtubeGateway.GetVideoAsync(videoId.Value, cancellationToken);
             }
             catch (Exception ex)
             {
                 return Result.Fail($"Failed to retrieve video metadata for {videoId.Value}: {ex.Message}");
             }
 
-            return await DownloadVideoInternalAsync(video, name, relativePath, progress);
+            return await DownloadVideoInternalAsync(video, name, relativePath, progress, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -59,7 +58,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         }
     }
 
-    public async Task<Result> DownloadPlaylistAsync(string link, string relativePath = "", IProgress<int>? progress = null)
+    public async Task<Result> DownloadPlaylistAsync(string link, string relativePath = "", IProgress<int>? progress = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -70,14 +69,15 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             }
 
             // Fetch playlist videos
-            var videos = youtubeClient.Playlists.GetVideosAsync(playlistId.Value);
+            var videos = youtubeGateway.GetPlaylistVideosAsync(playlistId.Value, cancellationToken);
 
             int current = 0;
             int failed = 0;
             progress?.Report(current);
             await foreach (var video in videos)
             {
-                var result = await DownloadVideoInternalAsync(video, null, relativePath, null);
+                cancellationToken.ThrowIfCancellationRequested();
+                var result = await DownloadVideoInternalAsync(video, null, relativePath, null, cancellationToken);
                 if (result.Success)
                 {
                     current++;
@@ -109,7 +109,12 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         }
     }
 
-    private async Task<Result> DownloadVideoInternalAsync(IVideo video, string? name, string relativePath, IProgress<double>? progress)
+    private async Task<Result> DownloadVideoInternalAsync(
+        IVideo video,
+        string? name,
+        string relativePath,
+        IProgress<double>? progress,
+        CancellationToken cancellationToken)
     {
         string? outputPath = null;
         try
@@ -160,7 +165,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             StreamManifest manifest;
             try
             {
-                manifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id);
+                manifest = await youtubeGateway.GetManifestAsync(video.Id, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -190,7 +195,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
 
             try
             {
-                await youtubeClient.Videos.Streams.DownloadAsync(audioStream, outputPath, progress);
+                await youtubeGateway.DownloadAsync(audioStream, outputPath, progress, cancellationToken);
             }
             catch (Exception ex)
             {
