@@ -36,7 +36,7 @@ public class ControlPanelView : FrameView
         {
             App?.Invoke(() =>
             {
-                playPauseButton.Text = "Pause";
+                playPauseButton.Text = "||";
             });
         });
 
@@ -44,20 +44,20 @@ public class ControlPanelView : FrameView
         {
             App?.Invoke(() =>
             {
-                playPauseButton.Text = "Play";
+                playPauseButton.Text = "|>";
             });
         });
     }
 
     private void RegisterButtons()
     {
-        playPauseButton = new Button { Text = "Play", Height = ButtonsHeight, X = Pos.Center() };
+        playPauseButton = new Button { Text = "|>", Height = ButtonsHeight, X = Pos.Center() };
 
-        backButton = new Button { Text = "-10s", Height = ButtonsHeight, X = Pos.Left(playPauseButton) - 10 };
-        forwardButton = new Button { Text = "+10s", Height = ButtonsHeight, X = Pos.Right(playPauseButton) + 4 };
+        backButton = new Button { Text = "<", Height = ButtonsHeight, X = Pos.Left(playPauseButton) - 10 };
+        forwardButton = new Button { Text = ">", Height = ButtonsHeight, X = Pos.Right(playPauseButton) + 4 };
 
-        previousSongButton = new Button { Text = "Prev", Height = ButtonsHeight, X = Pos.Left(backButton) - 10 };
-        nextSongButton = new Button { Text = "Next", Height = ButtonsHeight, X = Pos.Right(forwardButton) + 6 };
+        previousSongButton = new Button { Text = "<<", Height = ButtonsHeight, X = Pos.Left(backButton) - 10 };
+        nextSongButton = new Button { Text = ">>", Height = ButtonsHeight, X = Pos.Right(forwardButton) + 6 };
 
         playPauseButton.Accepting += (s, e) => { uiBus.Publish(new TogglePlayRequested()); e.Handled = true; };
         backButton.Accepting += (s, e) => { uiBus.Publish(new SeekRelativeRequested(-10)); e.Handled = true; };

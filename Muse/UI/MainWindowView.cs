@@ -90,12 +90,9 @@ public sealed class MainWindowView : Window
             {
                 uiEventBus.Publish(new SongLoading(msg.Track.Name));
             }
-            uiEventBus.Publish(new StatusMessage($"Loading {msg.Track.Name}..."));
-
             var loadResult = await player.Load(msg.Track);
             if (!loadResult.Success)
             {
-                uiEventBus.Publish(new StatusMessage(loadResult.Error, true));
                 uiEventBus.Publish(new PauseRequested());
                 App?.Invoke(() =>
                 {
@@ -122,7 +119,6 @@ public sealed class MainWindowView : Window
             }
             else
             {
-                uiEventBus.Publish(new StatusMessage($"Playing {msg.Track.Name}"));
                 StartPreCaching();
             }
         });
@@ -193,7 +189,6 @@ public sealed class MainWindowView : Window
         {
             ReloadPlaylist(msg.DirectoryPath, msg.Recursive);
             uiEventBus.Publish(new PlaylistUpdated(Playlist));
-            uiEventBus.Publish(new StatusMessage($"Loaded {Playlist.Count} song{(Playlist.Count == 1 ? "" : "s")}"));
         });
 
         uiEventBus.Subscribe<LoadYoutubePlaylist>(async msg =>
@@ -253,7 +248,6 @@ public sealed class MainWindowView : Window
                 {
                     Playlist = newTracks;
                     uiEventBus.Publish(new PlaylistUpdated(Playlist));
-                    uiEventBus.Publish(new StatusMessage($"Loaded {Playlist.Count} YouTube track{(Playlist.Count == 1 ? "" : "s")}"));
                     StartPreCaching();
                 });
             }
@@ -261,7 +255,6 @@ public sealed class MainWindowView : Window
             {
                 App?.Invoke(() =>
                 {
-                    uiEventBus.Publish(new StatusMessage($"Failed to load YouTube source: {ex.Message}", true));
                     if (App is not null)
                     {
                         MessageBox.ErrorQuery(App, "Error", $"Failed to load YouTube playlist: {ex.Message}", "OK");
@@ -328,7 +321,6 @@ public sealed class MainWindowView : Window
                 Playlist = newPlaylist;
                 uiEventBus.Publish(new PlaylistUpdated(Playlist));
                 uiEventBus.Publish(new RefreshPlaylistsRequested());
-                uiEventBus.Publish(new StatusMessage($"Library refreshed: {Playlist.Count} song{(Playlist.Count == 1 ? "" : "s")}"));
             });
         }
         catch (OperationCanceledException)
@@ -336,7 +328,7 @@ public sealed class MainWindowView : Window
         }
         catch (Exception ex)
         {
-            App?.Invoke(() => uiEventBus.Publish(new StatusMessage($"Library refresh failed: {ex.Message}", true)));
+            Console.Error.WriteLine($"Library refresh failed: {ex.Message}");
         }
     }
 
@@ -464,7 +456,7 @@ public sealed class MainWindowView : Window
         }
         catch (Exception ex)
         {
-            App?.Invoke(() => uiEventBus.Publish(new StatusMessage($"Pre-cache failed: {ex.Message}", true)));
+            Console.Error.WriteLine($"Pre-cache failed: {ex.Message}");
         }
         finally
         {

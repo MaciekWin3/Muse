@@ -40,5 +40,4 @@ namespace Muse.UI.Bus
 
     public sealed record ChangeModeRequested(AppMode NewMode);
     public sealed record DeleteSongRequested();
-    public sealed record StatusMessage(string Text, bool IsError = false);
 }

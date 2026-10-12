@@ -349,7 +349,6 @@ public class MenuBarView : MenuBar
             }
 
             downloadButton.Enabled = false;
-            uiEventBus.Publish(new StatusMessage("Downloading from YouTube..."));
             using var cancellationSource = new CancellationTokenSource();
 
             Result result;
@@ -390,7 +389,6 @@ public class MenuBarView : MenuBar
             if (result.IsFailure)
             {
                 progressLabel.Visible = false;
-                uiEventBus.Publish(new StatusMessage(result.Error, true));
                 App?.Invoke(() => MessageBox.ErrorQuery(App, "Error", result.Error, "Ok"));
             }
             else
@@ -399,7 +397,6 @@ public class MenuBarView : MenuBar
                 nameTextField.Text = string.Empty;
                 textLabelSuccess.Visible = true;
                 progressLabel.Text = "[##########] 100%";
-                uiEventBus.Publish(new StatusMessage("Download complete"));
 
                 App?.Invoke(() => uiEventBus.Publish(new RefreshPlaylistsRequested()));
             }

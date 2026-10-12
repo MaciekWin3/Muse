@@ -8,7 +8,6 @@ namespace Muse.UI.Views;
 public class StatusBarView : StatusBar
 {
     private readonly IUiEventBus uiEventBus;
-    private readonly Label statusLabel;
 
     public StatusBarView(IUiEventBus uiEventBus)
     {
@@ -16,15 +15,6 @@ public class StatusBarView : StatusBar
 
         AlignmentModes = AlignmentModes.IgnoreFirstOrLast;
         CanFocus = false;
-
-        statusLabel = new Label
-        {
-            X = 1,
-            Y = 0,
-            Width = Dim.Fill()! - 2,
-            Text = "Ready"
-        };
-        Add(statusLabel);
 
         AddShortcuts();
         RegisterBusHandlers();
@@ -104,7 +94,7 @@ public class StatusBarView : StatusBar
         {
             if (playerShortcuts.Any(s => shortcut.Title.StartsWith(s, StringComparison.OrdinalIgnoreCase)))
             {
-                shortcut.Visible = mode == AppMode.Shortcuts;
+                shortcut.Visible = true;
             }
         }
     }
@@ -136,12 +126,5 @@ public class StatusBarView : StatusBar
             });
         });
 
-        uiEventBus.Subscribe<StatusMessage>(msg =>
-        {
-            App?.Invoke(() =>
-            {
-                statusLabel.Text = msg.IsError ? $"Error: {msg.Text}" : msg.Text;
-            });
-        });
     }
 }
