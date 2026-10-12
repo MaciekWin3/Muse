@@ -2,10 +2,10 @@ using Muse.Player;
 using Muse.UI.Bus;
 using Muse.UI.Views;
 using Muse.Utils;
+using Muse.YouTube;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
-using YoutubeExplode;
 using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos;
 
@@ -35,15 +35,21 @@ public sealed class MainWindowView : Window
     private PlayMode _playMode = PlayMode.None;
     private bool _isShuffle = false;
     private readonly Random _random = new();
-    private readonly YoutubeClient _youtubeClient = new();
+    private readonly IYoutubeGateway youtubeGateway;
+    private CancellationTokenSource? _youtubeLoadCts;
     private bool _isTransitioning = false;
     private object? _trackTimeoutToken; // Captured reference for proper disposal
 
-    public MainWindowView(IPlayerService player, IUiEventBus uiEventBus, IMusicLibraryService musicLibrary)
+    public MainWindowView(
+        IPlayerService player,
+        IUiEventBus uiEventBus,
+        IMusicLibraryService musicLibrary,
+        IYoutubeGateway youtubeGateway)
     {
         this.player = player;
         this.uiEventBus = uiEventBus;
         this.musicLibrary = musicLibrary;
+        this.youtubeGateway = youtubeGateway;
         _currentDirectory = Globals.MuseDirectory;
 
         Playlist = musicLibrary.Scan(_currentDirectory).Select(Track.FromFileInfo).ToList();
@@ -193,6 +199,12 @@ public sealed class MainWindowView : Window
 
         uiEventBus.Subscribe<LoadYoutubePlaylist>(async msg =>
         {
+            _youtubeLoadCts?.Cancel();
+            _youtubeLoadCts?.Dispose();
+            var loadCts = new CancellationTokenSource();
+            _youtubeLoadCts = loadCts;
+            var cancellationToken = loadCts.Token;
+
             try
             {
                 var newTracks = new List<Track>();
@@ -200,8 +212,7 @@ public sealed class MainWindowView : Window
                 var playlistId = PlaylistId.TryParse(msg.PlaylistUrl);
                 if (playlistId is not null)
                 {
-                    var playlist = await _youtubeClient.Playlists.GetAsync(playlistId.Value);
-                    await foreach (var v in _youtubeClient.Playlists.GetVideosAsync(playlist.Id))
+                    await foreach (var v in youtubeGateway.GetPlaylistVideosAsync(playlistId.Value, cancellationToken))
                     {
                         if (newTracks.Count >= 100)
                         {
@@ -223,7 +234,7 @@ public sealed class MainWindowView : Window
                     var videoId = VideoId.TryParse(msg.PlaylistUrl);
                     if (videoId is not null)
                     {
-                        var v = await _youtubeClient.Videos.GetAsync(videoId.Value);
+                        var v = await youtubeGateway.GetVideoAsync(videoId.Value, cancellationToken);
                         newTracks.Add(new Track
                         {
                             Name = v.Title,
@@ -251,6 +262,9 @@ public sealed class MainWindowView : Window
                     StartPreCaching();
                 });
             }
+            catch (OperationCanceledException)
+            {
+            }
             catch (Exception ex)
             {
                 App?.Invoke(() =>
@@ -260,6 +274,14 @@ public sealed class MainWindowView : Window
                         MessageBox.ErrorQuery(App, "Error", $"Failed to load YouTube playlist: {ex.Message}", "OK");
                     }
                 });
+            }
+            finally
+            {
+                if (ReferenceEquals(_youtubeLoadCts, loadCts))
+                {
+                    loadCts.Dispose();
+                    _youtubeLoadCts = null;
+                }
             }
         });
 
@@ -535,6 +557,8 @@ public sealed class MainWindowView : Window
             _debounceCts?.Dispose();
             _preCacheCts?.Cancel();
             _preCacheCts?.Dispose();
+            _youtubeLoadCts?.Cancel();
+            _youtubeLoadCts?.Dispose();
             _preCacheSemaphore.Dispose();
         }
         base.Dispose(disposing);
