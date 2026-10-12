@@ -17,6 +17,7 @@ public class MuseApp : Window
     private readonly MenuBarView menuBarView;
     private readonly StatusBarView statusBarView;
     private readonly IUiEventBus uiEventBus;
+    private readonly List<IDisposable> subscriptions = [];
     private AppMode currentMode = AppMode.Shortcuts;
 
     public MuseApp(IPlayerService player, IYoutubeDownloadService youtubeDownloadService,
@@ -32,7 +33,7 @@ public class MuseApp : Window
 
         Add(mainWindow, statusBarView, menuBarView);
 
-        uiEventBus.Subscribe<ChangeThemeRequested>(msg =>
+        Subscribe<ChangeThemeRequested>(msg =>
         {
             // Since we can't use static Application, invoke through the View's 
             // built-in Application Context if available, or run inline safely.
@@ -45,10 +46,26 @@ public class MuseApp : Window
             ApplyTheme();
         });
 
-        uiEventBus.Subscribe<ChangeModeRequested>(msg =>
+        Subscribe<ChangeModeRequested>(msg =>
         {
             currentMode = msg.NewMode;
         });
+    }
+
+    private void Subscribe<T>(Action<T> handler) => subscriptions.Add(uiEventBus.Subscribe(handler));
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var subscription in subscriptions)
+            {
+                subscription.Dispose();
+            }
+            subscriptions.Clear();
+        }
+
+        base.Dispose(disposing);
     }
 
     // Instead of subscribing/unsubscribing to a dirty global hook,

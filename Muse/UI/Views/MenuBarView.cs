@@ -14,6 +14,7 @@ public class MenuBarView : MenuBar
 {
     private readonly IYoutubeDownloadService youtubeDownloadService;
     private readonly IUiEventBus uiEventBus;
+    private readonly List<IDisposable> subscriptions = [];
 
     private PlayMode playMode = PlayMode.None;
     private bool isShuffle = false;
@@ -25,7 +26,7 @@ public class MenuBarView : MenuBar
 
         RebuildMenu();
 
-        uiEventBus.Subscribe<RefreshPlaylistsRequested>(_ =>
+        Subscribe<RefreshPlaylistsRequested>(_ =>
         {
             App?.Invoke(() =>
             {
@@ -33,7 +34,7 @@ public class MenuBarView : MenuBar
             });
         });
 
-        uiEventBus.Subscribe<PlayModeChanged>(msg =>
+        Subscribe<PlayModeChanged>(msg =>
         {
             App?.Invoke(() =>
             {
@@ -42,7 +43,7 @@ public class MenuBarView : MenuBar
             });
         });
 
-        uiEventBus.Subscribe<ShuffleChanged>(msg =>
+        Subscribe<ShuffleChanged>(msg =>
         {
             App?.Invoke(() =>
             {
@@ -50,6 +51,22 @@ public class MenuBarView : MenuBar
                 RebuildMenu();
             });
         });
+    }
+
+    private void Subscribe<T>(Action<T> handler) => subscriptions.Add(uiEventBus.Subscribe(handler));
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var subscription in subscriptions)
+            {
+                subscription.Dispose();
+            }
+            subscriptions.Clear();
+        }
+
+        base.Dispose(disposing);
     }
 
     private void RebuildMenu()

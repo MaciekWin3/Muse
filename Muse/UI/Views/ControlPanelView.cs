@@ -7,6 +7,7 @@ namespace Muse.UI.Views;
 public class ControlPanelView : FrameView
 {
     private readonly IUiEventBus uiBus;
+    private readonly List<IDisposable> subscriptions = [];
 
     private const int ButtonsFrameHeight = 3;
     private const int ButtonsHeight = 2;
@@ -32,7 +33,7 @@ public class ControlPanelView : FrameView
 
     private void RegisterBusHandlers()
     {
-        uiBus.Subscribe<PlayRequested>(msg =>
+        Subscribe<PlayRequested>(msg =>
         {
             App?.Invoke(() =>
             {
@@ -40,13 +41,29 @@ public class ControlPanelView : FrameView
             });
         });
 
-        uiBus.Subscribe<PauseRequested>(msg =>
+        Subscribe<PauseRequested>(msg =>
         {
             App?.Invoke(() =>
             {
                 playPauseButton.Text = "|>";
             });
         });
+    }
+
+    private void Subscribe<T>(Action<T> handler) => subscriptions.Add(uiBus.Subscribe(handler));
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var subscription in subscriptions)
+            {
+                subscription.Dispose();
+            }
+            subscriptions.Clear();
+        }
+
+        base.Dispose(disposing);
     }
 
     private void RegisterButtons()

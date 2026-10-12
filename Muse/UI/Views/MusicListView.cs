@@ -14,6 +14,7 @@ public sealed class MusicListView : FrameView
     private readonly IPlayerService playerService;
     private List<Track> songs = [];
     private readonly ObservableCollection<string> songNames = [];
+    private readonly List<IDisposable> subscriptions = [];
 
     private PlayMode _playMode = PlayMode.None;
 
@@ -44,12 +45,12 @@ public sealed class MusicListView : FrameView
 
     private void RegisterBusHandlers()
     {
-        uiEventBus.Subscribe<PlayModeChanged>(msg =>
+        Subscribe<PlayModeChanged>(msg =>
         {
             _playMode = msg.NewMode;
         });
 
-        uiEventBus.Subscribe<SongSelected>(msg =>
+        Subscribe<SongSelected>(msg =>
         {
             App?.Invoke(() =>
             {
@@ -61,7 +62,7 @@ public sealed class MusicListView : FrameView
             });
         });
 
-        uiEventBus.Subscribe<PlaylistUpdated>(msg =>
+        Subscribe<PlaylistUpdated>(msg =>
         {
             // If the view isn't attached to the visual tree yet, App will be null.
             // During startup, this initial publish runs on the main thread anyway,
@@ -86,7 +87,7 @@ public sealed class MusicListView : FrameView
             }
         });
 
-        uiEventBus.Subscribe<ChangeSongIndexRequested>(msg =>
+        Subscribe<ChangeSongIndexRequested>(msg =>
         {
             var count = songs.Count;
 
@@ -117,7 +118,7 @@ public sealed class MusicListView : FrameView
             uiEventBus.Publish(new SongSelected(track));
         });
 
-        uiEventBus.Subscribe<DeleteSongRequested>(_ =>
+        Subscribe<DeleteSongRequested>(_ =>
         {
             int selectedIndex = listView.SelectedItem ?? -1;
             if (selectedIndex >= 0 && selectedIndex < songs.Count && App is not null)
@@ -149,6 +150,8 @@ public sealed class MusicListView : FrameView
         });
     }
 
+    private void Subscribe<T>(Action<T> handler) => subscriptions.Add(uiEventBus.Subscribe(handler));
+
     private void RegisterEvents()
     {
         listView.ValueChanged += (sender, e) =>
@@ -163,5 +166,19 @@ public sealed class MusicListView : FrameView
                 }
             }
         };
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var subscription in subscriptions)
+            {
+                subscription.Dispose();
+            }
+            subscriptions.Clear();
+        }
+
+        base.Dispose(disposing);
     }
 }

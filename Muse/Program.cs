@@ -19,6 +19,7 @@ using var host = Host.CreateDefaultBuilder(args)
             services.AddSingleton<IYoutubeGateway, YoutubeGateway>();
             services.AddSingleton<IPlayerService, PlayerService>();
             services.AddSingleton<IMusicLibraryService, MusicLibraryService>();
+            services.AddSingleton<IMusicLibraryIndex, MusicLibraryIndex>();
         }
     )
     .Build();

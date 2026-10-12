@@ -11,6 +11,7 @@ public sealed class VolumeView : ProgressBar
 {
     private readonly IUiEventBus uiBus;
     private readonly Label volumeLabel;
+    private readonly List<IDisposable> subscriptions = [];
 
     public VolumeView(IUiEventBus uiBus, Pos x, Pos y)
     {
@@ -66,14 +67,28 @@ public sealed class VolumeView : ProgressBar
 
     private void RegisterBusHandlers()
     {
-        uiBus.Subscribe<VolumeChanged>(msg =>
+        subscriptions.Add(uiBus.Subscribe<VolumeChanged>(msg =>
         {
             App?.Invoke(() =>
             {
                 Fraction = msg.Volume;
                 volumeLabel.Text = $"{(int)(msg.Volume * 100)}%";
             });
-        });
+        }));
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var subscription in subscriptions)
+            {
+                subscription.Dispose();
+            }
+            subscriptions.Clear();
+        }
+
+        base.Dispose(disposing);
     }
 
     private void RegisterInteractions()

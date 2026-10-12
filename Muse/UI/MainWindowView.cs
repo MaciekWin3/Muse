@@ -14,7 +14,8 @@ namespace Muse.UI;
 public sealed class MainWindowView : Window
 {
     private readonly IPlayerService player;
-    private readonly IMusicLibraryService musicLibrary;
+    private readonly IMusicLibraryIndex musicLibraryIndex;
+    private readonly PlaybackTransitionCoordinator playbackTransitions = new();
 
     // Components
     private ControlPanelView controlPanelView = null!;
@@ -44,16 +45,16 @@ public sealed class MainWindowView : Window
     public MainWindowView(
         IPlayerService player,
         IUiEventBus uiEventBus,
-        IMusicLibraryService musicLibrary,
-        IYoutubeGateway youtubeGateway)
+        IYoutubeGateway youtubeGateway,
+        IMusicLibraryIndex musicLibraryIndex)
     {
         this.player = player;
         this.uiEventBus = uiEventBus;
-        this.musicLibrary = musicLibrary;
         this.youtubeGateway = youtubeGateway;
+        this.musicLibraryIndex = musicLibraryIndex;
         _currentDirectory = Globals.MuseDirectory;
 
-        Playlist = musicLibrary.Scan(_currentDirectory).Select(Track.FromFileInfo).ToList();
+        Playlist = musicLibraryIndex.GetTracks(_currentDirectory).ToList();
         RegisterBusHandlers();
         RegisterControls();
         RegisterStyles();
@@ -329,6 +330,7 @@ public sealed class MainWindowView : Window
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
+        musicLibraryIndex.Invalidate(_currentDirectory);
         _debounceCts?.Cancel();
         _debounceCts = new CancellationTokenSource();
         var token = _debounceCts.Token;
@@ -342,7 +344,7 @@ public sealed class MainWindowView : Window
         {
             await Task.Delay(500, token);
 
-            var newPlaylist = musicLibrary.Scan(_currentDirectory).Select(Track.FromFileInfo).ToList();
+            var newPlaylist = musicLibraryIndex.GetTracks(_currentDirectory).ToList();
 
             App?.Invoke(() =>
             {
@@ -424,26 +426,36 @@ public sealed class MainWindowView : Window
         if (info.CurrentTime >= info.TotalTimeInSeconds && info.TotalTimeInSeconds > 0 &&
             player.State == PlaybackState.Playing && !_isTransitioning)
         {
-            if (_playMode == PlayMode.RepeatOne)
+            var currentIndex = player.CurrentTrack is null
+                ? -1
+                : Playlist.FindIndex(track => track.Path == player.CurrentTrack.Path);
+            var transition = playbackTransitions.Decide(
+                player.State,
+                _isTransitioning,
+                currentIndex,
+                Playlist.Count,
+                _playMode,
+                _isShuffle);
+
+            if (transition == PlaybackTransitionAction.RepeatCurrent)
             {
                 player.ChangeCurrentSongTime(0);
                 player.Play();
                 return true;
             }
 
-            if (_playMode == PlayMode.None && !_isShuffle)
+            if (transition == PlaybackTransitionAction.StopAtEnd)
             {
-                var currentTrack = player.CurrentTrack;
-                if (currentTrack is not null && Playlist.Count > 0 && Playlist.Last().Path == currentTrack.Path)
-                {
-                    uiEventBus.Publish(new PauseRequested());
-                    player.Stop();
-                    return true;
-                }
+                uiEventBus.Publish(new PauseRequested());
+                player.Stop();
+                return true;
             }
 
-            _isTransitioning = true;
-            uiEventBus.Publish(new NextSongRequested());
+            if (transition == PlaybackTransitionAction.Advance)
+            {
+                _isTransitioning = true;
+                uiEventBus.Publish(new NextSongRequested());
+            }
         }
 
         return true;
@@ -459,7 +471,8 @@ public sealed class MainWindowView : Window
         _currentDirectory = path;
         watcher.Path = Globals.MuseDirectory;
 
-        Playlist = musicLibrary.Scan(path, recursive).Select(Track.FromFileInfo).ToList();
+        musicLibraryIndex.Invalidate(path);
+        Playlist = musicLibraryIndex.GetTracks(path, recursive).ToList();
     }
 
     private void StartPreCaching()

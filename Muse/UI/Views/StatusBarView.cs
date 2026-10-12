@@ -8,6 +8,7 @@ namespace Muse.UI.Views;
 public class StatusBarView : StatusBar
 {
     private readonly IUiEventBus uiEventBus;
+    private readonly List<IDisposable> subscriptions = [];
 
     public StatusBarView(IUiEventBus uiEventBus)
     {
@@ -101,7 +102,7 @@ public class StatusBarView : StatusBar
 
     private void RegisterBusHandlers()
     {
-        uiEventBus.Subscribe<ChangeModeRequested>(msg =>
+        Subscribe<ChangeModeRequested>(msg =>
         {
             App?.Invoke(() =>
             {
@@ -114,7 +115,7 @@ public class StatusBarView : StatusBar
             });
         });
 
-        uiEventBus.Subscribe<VolumeChanged>(msg =>
+        Subscribe<VolumeChanged>(msg =>
         {
             App?.Invoke(() =>
             {
@@ -126,5 +127,21 @@ public class StatusBarView : StatusBar
             });
         });
 
+    }
+
+    private void Subscribe<T>(Action<T> handler) => subscriptions.Add(uiEventBus.Subscribe(handler));
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var subscription in subscriptions)
+            {
+                subscription.Dispose();
+            }
+            subscriptions.Clear();
+        }
+
+        base.Dispose(disposing);
     }
 }

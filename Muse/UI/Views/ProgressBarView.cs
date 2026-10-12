@@ -11,6 +11,7 @@ public sealed class ProgressBarView : ProgressBar
 {
     private readonly IUiEventBus uiEventBus;
     private readonly IPlayerService player;
+    private readonly List<IDisposable> subscriptions = [];
 
     public ProgressBarView(IUiEventBus uiEventBus, IPlayerService player, Pos x, Pos y)
     {
@@ -33,7 +34,7 @@ public sealed class ProgressBarView : ProgressBar
 
     private void RegisterBusHandlers()
     {
-        uiEventBus.Subscribe<SongLoading>(msg =>
+        Subscribe<SongLoading>(msg =>
         {
             App?.Invoke(() =>
             {
@@ -42,7 +43,7 @@ public sealed class ProgressBarView : ProgressBar
             });
         });
 
-        uiEventBus.Subscribe<TrackProgress>(msg =>
+        Subscribe<TrackProgress>(msg =>
         {
             App?.Invoke(() =>
             {
@@ -59,6 +60,8 @@ public sealed class ProgressBarView : ProgressBar
             });
         });
     }
+
+    private void Subscribe<T>(Action<T> handler) => subscriptions.Add(uiEventBus.Subscribe(handler));
 
     private void RegisterMouseHandler()
     {
@@ -88,5 +91,19 @@ public sealed class ProgressBarView : ProgressBar
     {
         static string Format(int s) => $"{s / 60}:{s % 60:00}";
         return $" {Format(current)} / {Format(total)}";
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var subscription in subscriptions)
+            {
+                subscription.Dispose();
+            }
+            subscriptions.Clear();
+        }
+
+        base.Dispose(disposing);
     }
 }
