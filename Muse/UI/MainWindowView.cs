@@ -27,6 +27,7 @@ public sealed class MainWindowView : Window
     public List<Track> Playlist { get; set; }
 
     private readonly IUiEventBus uiEventBus;
+    private readonly List<IDisposable> subscriptions = [];
     private CancellationTokenSource? _debounceCts;
     private CancellationTokenSource? _preCacheCts;
     private readonly SemaphoreSlim _preCacheSemaphore = new(1, 1);
@@ -74,7 +75,7 @@ public sealed class MainWindowView : Window
 
     private void RegisterBusHandlers()
     {
-        uiEventBus.Subscribe<SongSelected>(async msg =>
+        Subscribe<SongSelected>(async msg =>
         {
             _isTransitioning = false;
             if (player.CurrentTrack?.Path == msg.Track.Path)
@@ -129,7 +130,7 @@ public sealed class MainWindowView : Window
             }
         });
 
-        uiEventBus.Subscribe<TogglePlayRequested>(_ =>
+        Subscribe<TogglePlayRequested>(_ =>
         {
             var songInfoResult = player.GetSongInfo();
             if (songInfoResult.IsFailure)
@@ -154,7 +155,7 @@ public sealed class MainWindowView : Window
             }
         });
 
-        uiEventBus.Subscribe<SeekRelativeRequested>(msg =>
+        Subscribe<SeekRelativeRequested>(msg =>
         {
             var songInfo = player.GetSongInfo();
             if (songInfo.Success)
@@ -172,7 +173,7 @@ public sealed class MainWindowView : Window
             }
         });
 
-        uiEventBus.Subscribe<VolumeChanged>(msg =>
+        Subscribe<VolumeChanged>(msg =>
         {
             if (msg.Volume < 0f || msg.Volume > 1f)
             {
@@ -186,18 +187,18 @@ public sealed class MainWindowView : Window
             }
         });
 
-        uiEventBus.Subscribe<MuteToggle>(msg =>
+        Subscribe<MuteToggle>(msg =>
         {
             uiEventBus.Publish(new VolumeChanged(msg.IsMuted ? 0f : Globals.LastAudibleVolume));
         });
 
-        uiEventBus.Subscribe<ReloadPlaylist>(msg =>
+        Subscribe<ReloadPlaylist>(msg =>
         {
             ReloadPlaylist(msg.DirectoryPath, msg.Recursive);
             uiEventBus.Publish(new PlaylistUpdated(Playlist));
         });
 
-        uiEventBus.Subscribe<LoadYoutubePlaylist>(async msg =>
+        Subscribe<LoadYoutubePlaylist>(async msg =>
         {
             _youtubeLoadCts?.Cancel();
             _youtubeLoadCts?.Dispose();
@@ -285,7 +286,7 @@ public sealed class MainWindowView : Window
             }
         });
 
-        uiEventBus.Subscribe<PreviousSongRequested>(_ =>
+        Subscribe<PreviousSongRequested>(_ =>
         {
             if (_isShuffle && Playlist.Count > 0)
             {
@@ -296,7 +297,7 @@ public sealed class MainWindowView : Window
             uiEventBus.Publish(new ChangeSongIndexRequested(-1));
         });
 
-        uiEventBus.Subscribe<NextSongRequested>(_ =>
+        Subscribe<NextSongRequested>(_ =>
         {
             if (_isShuffle && Playlist.Count > 0)
             {
@@ -308,17 +309,22 @@ public sealed class MainWindowView : Window
             uiEventBus.Publish(new ChangeSongIndexRequested(+1));
         });
 
-        uiEventBus.Subscribe<TogglePlayModeRequested>(_ =>
+        Subscribe<TogglePlayModeRequested>(_ =>
         {
             _playMode = (PlayMode)(((int)_playMode + 1) % Enum.GetValues<PlayMode>().Length);
             uiEventBus.Publish(new PlayModeChanged(_playMode));
         });
 
-        uiEventBus.Subscribe<ShuffleToggleRequested>(_ =>
+        Subscribe<ShuffleToggleRequested>(_ =>
         {
             _isShuffle = !_isShuffle;
             uiEventBus.Publish(new ShuffleChanged(_isShuffle));
         });
+    }
+
+    private void Subscribe<T>(Action<T> handler)
+    {
+        subscriptions.Add(uiEventBus.Subscribe(handler));
     }
 
     private void OnChanged(object sender, FileSystemEventArgs e)
@@ -559,6 +565,11 @@ public sealed class MainWindowView : Window
             _preCacheCts?.Dispose();
             _youtubeLoadCts?.Cancel();
             _youtubeLoadCts?.Dispose();
+            foreach (var subscription in subscriptions)
+            {
+                subscription.Dispose();
+            }
+            subscriptions.Clear();
             _preCacheSemaphore.Dispose();
         }
         base.Dispose(disposing);
