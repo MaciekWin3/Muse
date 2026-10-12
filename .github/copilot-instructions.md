@@ -12,6 +12,12 @@ dotnet restore
 dotnet build
 dotnet build Muse/Muse.csproj --no-restore
 
+# Run all tests
+dotnet test Muse.Tests/Muse.Tests.csproj
+
+# Run one test or test group
+dotnet test Muse.Tests/Muse.Tests.csproj --filter "FullyQualifiedName~Muse.Tests.PlaylistNavigatorTests"
+
 # Run the application (requires MUSE_DIRECTORY)
 dotnet run --project Muse
 
@@ -25,7 +31,7 @@ The application requires `MUSE_DIRECTORY` to point to the music directory. On Po
 [Environment]::SetEnvironmentVariable("MUSE_DIRECTORY", "C:\Path\To\Your\Music", "User")
 ```
 
-CI runs `dotnet restore`, `dotnet build --no-restore`, and `dotnet test --no-build --verbosity normal`. There is currently no test project, so there is no repository-specific single-test command; if a test project is added, run it with `dotnet test <path-to-test-project> --filter "FullyQualifiedName~<test-name>"`.
+CI runs `dotnet restore`, `dotnet build --no-restore`, and `dotnet test --no-build --verbosity normal`. The focused `Muse.Tests` project covers deterministic library scanning and playlist navigation; use the `--filter` form above for a single test group.
 
 There is no dedicated lint configuration or lint command in the repository. Builds currently surface compiler, nullable, platform-compatibility, and package warnings.
 
@@ -39,10 +45,12 @@ There is no dedicated lint configuration or lint command in the repository. Buil
 - `YouTube/YoutubeDownloadService.cs` handles downloads into the configured music directory and validates downloaded media before retaining it.
 - `UI/Bus/` contains `IUiEventBus`, its in-process implementation, and typed message records. Cross-component UI communication should use these messages rather than direct view-to-view calls.
 - `Utils/` contains shared application state (`Globals`), directory/media discovery helpers, result types, and other cross-cutting utilities.
+- `Muse.Tests/` contains deterministic tests for extracted application logic; keep filesystem, network, media-player, and Terminal.Gui integration behind interfaces so more behavior can be tested without starting the UI.
 
 ## Repository conventions
 
 - Keep services behind interfaces and register them as DI singletons in `Program.cs`; the existing service interfaces are `IPlayerService`, `IYoutubeDownloadService`, and `IUiEventBus`.
+- Use `IMusicLibraryService` for library scans instead of making views call `MusicListHelper` directly. Keep playlist boundary and repeat behavior in `PlaylistNavigator` rather than duplicating index arithmetic in views.
 - Use file-scoped namespaces, standard .NET naming, and the existing private-field style.
 - For fallible service operations, follow the existing `Result`/`Result<T>` convention. Callers inspect `Success` or `IsFailure` and surface failures through the existing UI/error flow instead of relying on exceptions for expected failures.
 - Add new UI interactions as typed records in `UI/Bus/UiMessages.cs`, then publish and subscribe through `IUiEventBus`. Keep Terminal.Gui updates on the UI context when invoking from asynchronous work.
@@ -50,4 +58,4 @@ There is no dedicated lint configuration or lint command in the repository. Buil
 - `Track` represents both local and YouTube media. Preserve its `TrackSource` distinction and YouTube identifier/stream URL behavior when changing playback or playlist logic.
 - Terminal.Gui v2 configuration is applied through `TuiConfigurationBuilder.Shared.ApplyToStaticFacades()`. Theme changes use `ThemeManager.Theme` followed by applying the shared configuration.
 - The project is packaged as the `MusePlayer` global tool with command name `muse`. Merges to `main` trigger the NuGet publishing workflow, which auto-increments the patch version unless the project version was manually changed.
-- There is no dedicated test suite yet. Keep new logic injectable and isolated so a future test project can exercise services without starting the Terminal.Gui application.
+- Keep new logic injectable and isolated so tests can exercise services without starting the Terminal.Gui application.

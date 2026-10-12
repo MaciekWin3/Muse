@@ -14,6 +14,7 @@ namespace Muse.UI;
 public sealed class MainWindowView : Window
 {
     private readonly IPlayerService player;
+    private readonly IMusicLibraryService musicLibrary;
 
     // Components
     private ControlPanelView controlPanelView = null!;
@@ -36,13 +37,14 @@ public sealed class MainWindowView : Window
     private bool _isTransitioning = false;
     private object? _trackTimeoutToken; // Captured reference for proper disposal
 
-    public MainWindowView(IPlayerService player, IUiEventBus uiEventBus)
+    public MainWindowView(IPlayerService player, IUiEventBus uiEventBus, IMusicLibraryService musicLibrary)
     {
         this.player = player;
         this.uiEventBus = uiEventBus;
+        this.musicLibrary = musicLibrary;
         _currentDirectory = Globals.MuseDirectory;
 
-        Playlist = MusicListHelper.GetMusicList(_currentDirectory).Select(Track.FromFileInfo).ToList();
+        Playlist = musicLibrary.Scan(_currentDirectory).Select(Track.FromFileInfo).ToList();
         RegisterBusHandlers();
         RegisterControls();
         RegisterStyles();
@@ -302,7 +304,7 @@ public sealed class MainWindowView : Window
         {
             if (t.IsCanceled) return;
 
-            var newPlaylist = MusicListHelper.GetMusicList(_currentDirectory).Select(Track.FromFileInfo).ToList();
+            var newPlaylist = musicLibrary.Scan(_currentDirectory).Select(Track.FromFileInfo).ToList();
 
             App?.Invoke(() =>
             {
@@ -412,7 +414,7 @@ public sealed class MainWindowView : Window
         _currentDirectory = path;
         watcher.Path = Globals.MuseDirectory;
 
-        Playlist = MusicListHelper.GetMusicList(path, recursive).Select(Track.FromFileInfo).ToList();
+        Playlist = musicLibrary.Scan(path, recursive).Select(Track.FromFileInfo).ToList();
     }
 
     private async Task PreCacheNextSongs()

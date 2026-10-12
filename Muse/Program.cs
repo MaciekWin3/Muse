@@ -17,6 +17,7 @@ using var host = Host.CreateDefaultBuilder(args)
             services.AddSingleton<IUiEventBus, UiEventBus>();
             services.AddSingleton<IYoutubeDownloadService, YoutubeDownloadService>();
             services.AddSingleton<IPlayerService, PlayerService>();
+            services.AddSingleton<IMusicLibraryService, MusicLibraryService>();
         }
     )
     .Build();

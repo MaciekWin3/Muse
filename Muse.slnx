@@ -10,4 +10,5 @@
     <File Path="docs/TODO.md" />
   </Folder>
   <Project Path="Muse/Muse.csproj" />
+  <Project Path="Muse.Tests/Muse.Tests.csproj" />
 </Solution>

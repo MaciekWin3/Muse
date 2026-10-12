@@ -96,30 +96,15 @@ public sealed class MusicListView : FrameView
             }
 
             int currentIndex = listView.SelectedItem ?? 0;
-            int newIndex = currentIndex + msg.Offset;
-
-            if (newIndex < 0)
+            int? nextIndex = new PlaylistNavigator(songs).GetAdjacentIndex(currentIndex, msg.Offset, _playMode);
+            if (nextIndex is null)
             {
-                if (_playMode == PlayMode.Repeat)
-                {
-                    newIndex = count - 1;
-                }
-                else
-                {
-                    return;
-                }
-            }
-            else if (newIndex >= count)
-            {
-                if (_playMode == PlayMode.Repeat)
-                {
-                    newIndex = 0;
-                }
+                return;
             }
 
-            listView.SelectedItem = newIndex;
+            listView.SelectedItem = nextIndex.Value;
 
-            if (newIndex < 0 || newIndex >= songs.Count)
+            if (nextIndex.Value < 0 || nextIndex.Value >= songs.Count)
             {
                 if (App is not null)
                 {
@@ -128,7 +113,7 @@ public sealed class MusicListView : FrameView
                 return;
             }
 
-            var track = songs[newIndex];
+            var track = songs[nextIndex.Value];
             uiEventBus.Publish(new SongSelected(track));
         });
 
