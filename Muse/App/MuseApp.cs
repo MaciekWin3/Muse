@@ -39,12 +39,7 @@ public class MuseApp : Window
             void ApplyTheme()
             {
                 ThemeManager.Theme = msg.ThemeName;
-                // TuiConfigurationBuilder (the suggested replacement) is an undocumented,
-                // still-evolving API in this Terminal.Gui prerelease. Stay on the static
-                // ConfigurationManager facade until a migration guide is published.
-#pragma warning disable CS0618
-                ConfigurationManager.Apply();
-#pragma warning restore CS0618
+                TuiConfigurationBuilder.Shared.ApplyToStaticFacades();
             }
 
             ApplyTheme();
