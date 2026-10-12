@@ -31,6 +31,7 @@ public class PlayerService : IPlayerService, IDisposable
     private float _volume = 0.5f;
     private CancellationTokenSource? _loadCts;
     private readonly SemaphoreSlim _loadSemaphore = new(1, 1);
+    private bool _disposed;
 
     public Track? CurrentTrack { get; private set; }
     public string? CurrentFilePath { get; private set; }
@@ -69,6 +70,7 @@ public class PlayerService : IPlayerService, IDisposable
     public async Task<Result> Load(Track track)
     {
         _loadCts?.Cancel();
+        _loadCts?.Dispose();
         _loadCts = new CancellationTokenSource();
         var token = _loadCts.Token;
 
@@ -110,6 +112,7 @@ public class PlayerService : IPlayerService, IDisposable
                 ? new Media(_libVLC, new Uri(urlToLoad))
                 : new Media(_libVLC, urlToLoad, FromType.FromPath);
 
+            _mediaPlayer!.Media?.Dispose();
             _mediaPlayer!.Media = media;
             CurrentTrack = track;
             CurrentFilePath = track.Path;
@@ -243,8 +246,19 @@ public class PlayerService : IPlayerService, IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = null;
         _mediaPlayer?.Stop();
+        _mediaPlayer?.Media?.Dispose();
         _mediaPlayer?.Dispose();
         _libVLC?.Dispose();
+        _loadSemaphore.Dispose();
     }
 }
