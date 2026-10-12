@@ -39,7 +39,7 @@ public class MuseApp : Window
             void ApplyTheme()
             {
                 ThemeManager.Theme = msg.ThemeName;
-                ConfigurationManager.Apply();
+                TuiConfigurationBuilder.Shared.ApplyToStaticFacades();
             }
 
             ApplyTheme();

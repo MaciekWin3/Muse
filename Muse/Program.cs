@@ -48,7 +48,7 @@ void InitApp()
     using IApplication app = Application.Create();
     app.Init();
     var museApp = services.GetRequiredService<MuseApp>();
-    ConfigurationManager.Enable(ConfigLocations.All);
+    TuiConfigurationBuilder.Shared.ApplyToStaticFacades();
     ThemeManager.Theme = "Anders";
     app.Run(museApp);
 }
@@ -71,4 +71,3 @@ static void HandleMuseEnvironmentVariableMissing()
     }
     Environment.Exit(1);
 }
-
