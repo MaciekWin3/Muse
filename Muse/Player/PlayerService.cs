@@ -1,7 +1,7 @@
 using LibVLCSharp.Shared;
 using Microsoft.Extensions.Logging;
 using Muse.Utils;
-using YoutubeExplode;
+using Muse.YouTube;
 using YoutubeExplode.Videos.Streams;
 
 namespace Muse.Player;
@@ -26,9 +26,9 @@ public class PlayerService : IPlayerService, IDisposable
 {
     private readonly LibVLC _libVLC;
     private readonly ILogger<PlayerService> logger;
+    private readonly IYoutubeGateway youtubeGateway;
     private MediaPlayer? _mediaPlayer;
     private float _volume = 0.5f;
-    private readonly YoutubeClient youtubeClient = new();
     private CancellationTokenSource? _loadCts;
     private readonly SemaphoreSlim _loadSemaphore = new(1, 1);
 
@@ -53,9 +53,10 @@ public class PlayerService : IPlayerService, IDisposable
         }
     }
 
-    public PlayerService(ILogger<PlayerService> logger)
+    public PlayerService(ILogger<PlayerService> logger, IYoutubeGateway youtubeGateway)
     {
         this.logger = logger;
+        this.youtubeGateway = youtubeGateway;
         Core.Initialize();
         _libVLC = new LibVLC("--no-video", "--quiet", "--no-stats");
         _volume = Globals.Volume;
@@ -91,7 +92,7 @@ public class PlayerService : IPlayerService, IDisposable
                 }
                 else
                 {
-                    var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId, token);
+                    var manifest = await youtubeGateway.GetManifestAsync(track.YouTubeId, token);
                     var audioOnlyStreams = manifest.GetAudioOnlyStreams();
                     var streamInfo = audioOnlyStreams.GetWithHighestBitrate();
                     if (streamInfo is null)
@@ -144,7 +145,7 @@ public class PlayerService : IPlayerService, IDisposable
             {
                 try
                 {
-                    var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(track.YouTubeId, token);
+                    var manifest = await youtubeGateway.GetManifestAsync(track.YouTubeId, token);
                     var audioOnlyStreams = manifest.GetAudioOnlyStreams();
                     var streamInfo = audioOnlyStreams.GetWithHighestBitrate();
                     if (streamInfo is not null)
