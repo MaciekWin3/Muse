@@ -1,4 +1,5 @@
 using LibVLCSharp.Shared;
+using Microsoft.Extensions.Logging;
 using Muse.Utils;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
@@ -24,6 +25,7 @@ public interface IPlayerService
 public class PlayerService : IPlayerService, IDisposable
 {
     private readonly LibVLC _libVLC;
+    private readonly ILogger<PlayerService> logger;
     private MediaPlayer? _mediaPlayer;
     private float _volume = 0.5f;
     private readonly YoutubeClient youtubeClient = new();
@@ -51,8 +53,9 @@ public class PlayerService : IPlayerService, IDisposable
         }
     }
 
-    public PlayerService()
+    public PlayerService(ILogger<PlayerService> logger)
     {
+        this.logger = logger;
         Core.Initialize();
         _libVLC = new LibVLC("--no-video", "--quiet", "--no-stats");
         _volume = Globals.Volume;
@@ -113,10 +116,12 @@ public class PlayerService : IPlayerService, IDisposable
         }
         catch (OperationCanceledException)
         {
+            logger.LogDebug("Loading track {TrackPath} was canceled.", track.Path);
             return Result.Fail("Loading was canceled.");
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to load track {TrackPath}.", track.Path);
             return Result.Fail($"Failed to load audio: {ex.Message}");
         }
         finally
@@ -149,7 +154,7 @@ public class PlayerService : IPlayerService, IDisposable
                 }
                 catch
                 {
-                    // Ignore errors or cancellations during pre-caching
+                    logger.LogDebug("Failed to pre-cache YouTube track {TrackId}.", track.YouTubeId);
                 }
             }
         }

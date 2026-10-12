@@ -1,4 +1,5 @@
 using LibVLCSharp.Shared;
+using Microsoft.Extensions.Logging;
 using Muse.Utils;
 using YoutubeExplode;
 using YoutubeExplode.Playlists;
@@ -16,9 +17,11 @@ public interface IYoutubeDownloadService
 public class YoutubeDownloadService : IYoutubeDownloadService
 {
     private readonly YoutubeClient youtubeClient;
+    private readonly ILogger<YoutubeDownloadService> logger;
 
-    public YoutubeDownloadService()
+    public YoutubeDownloadService(ILogger<YoutubeDownloadService> logger)
     {
+        this.logger = logger;
         youtubeClient = new YoutubeClient();
         try
         {
@@ -51,6 +54,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "YouTube download failed for {Link}.", link);
             return Result.Fail($"{ex.GetType().Name}: {ex.Message}");
         }
     }
@@ -69,6 +73,7 @@ public class YoutubeDownloadService : IYoutubeDownloadService
             var videos = youtubeClient.Playlists.GetVideosAsync(playlistId.Value);
 
             int current = 0;
+            int failed = 0;
             progress?.Report(current);
             await foreach (var video in videos)
             {
@@ -78,12 +83,28 @@ public class YoutubeDownloadService : IYoutubeDownloadService
                     current++;
                     progress?.Report(current);
                 }
+                else
+                {
+                    failed++;
+                    logger.LogWarning("Failed to download video {VideoId} from playlist {PlaylistId}.", video.Id, playlistId.Value);
+                }
+            }
+
+            if (current == 0 && failed == 0)
+            {
+                return Result.Fail("The YouTube playlist contains no downloadable videos.");
+            }
+
+            if (failed > 0)
+            {
+                return Result.Fail($"Downloaded {current} video{(current == 1 ? "" : "s")}; {failed} failed.");
             }
 
             return Result.Ok();
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "YouTube playlist download failed for {Link}.", link);
             return Result.Fail($"{ex.GetType().Name}: {ex.Message}");
         }
     }

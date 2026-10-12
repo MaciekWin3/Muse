@@ -28,6 +28,8 @@ public sealed class MainWindowView : Window
 
     private readonly IUiEventBus uiEventBus;
     private CancellationTokenSource? _debounceCts;
+    private CancellationTokenSource? _preCacheCts;
+    private readonly SemaphoreSlim _preCacheSemaphore = new(1, 1);
     private string _currentDirectory;
 
     private PlayMode _playMode = PlayMode.None;
@@ -88,10 +90,12 @@ public sealed class MainWindowView : Window
             {
                 uiEventBus.Publish(new SongLoading(msg.Track.Name));
             }
+            uiEventBus.Publish(new StatusMessage($"Loading {msg.Track.Name}..."));
 
             var loadResult = await player.Load(msg.Track);
             if (!loadResult.Success)
             {
+                uiEventBus.Publish(new StatusMessage(loadResult.Error, true));
                 uiEventBus.Publish(new PauseRequested());
                 App?.Invoke(() =>
                 {
@@ -118,7 +122,8 @@ public sealed class MainWindowView : Window
             }
             else
             {
-                _ = Task.Run(() => PreCacheNextSongs());
+                uiEventBus.Publish(new StatusMessage($"Playing {msg.Track.Name}"));
+                StartPreCaching();
             }
         });
 
@@ -173,17 +178,22 @@ public sealed class MainWindowView : Window
             }
 
             player.SetVolume(msg.Volume);
+            if (msg.Volume > 0f)
+            {
+                Globals.LastAudibleVolume = msg.Volume;
+            }
         });
 
         uiEventBus.Subscribe<MuteToggle>(msg =>
         {
-            uiEventBus.Publish(new VolumeChanged(msg.IsMuted ? 0f : Globals.Volume));
+            uiEventBus.Publish(new VolumeChanged(msg.IsMuted ? 0f : Globals.LastAudibleVolume));
         });
 
         uiEventBus.Subscribe<ReloadPlaylist>(msg =>
         {
             ReloadPlaylist(msg.DirectoryPath, msg.Recursive);
             uiEventBus.Publish(new PlaylistUpdated(Playlist));
+            uiEventBus.Publish(new StatusMessage($"Loaded {Playlist.Count} song{(Playlist.Count == 1 ? "" : "s")}"));
         });
 
         uiEventBus.Subscribe<LoadYoutubePlaylist>(async msg =>
@@ -243,13 +253,15 @@ public sealed class MainWindowView : Window
                 {
                     Playlist = newTracks;
                     uiEventBus.Publish(new PlaylistUpdated(Playlist));
-                    _ = Task.Run(() => PreCacheNextSongs());
+                    uiEventBus.Publish(new StatusMessage($"Loaded {Playlist.Count} YouTube track{(Playlist.Count == 1 ? "" : "s")}"));
+                    StartPreCaching();
                 });
             }
             catch (Exception ex)
             {
                 App?.Invoke(() =>
                 {
+                    uiEventBus.Publish(new StatusMessage($"Failed to load YouTube source: {ex.Message}", true));
                     if (App is not null)
                     {
                         MessageBox.ErrorQuery(App, "Error", $"Failed to load YouTube playlist: {ex.Message}", "OK");
@@ -300,9 +312,14 @@ public sealed class MainWindowView : Window
         _debounceCts = new CancellationTokenSource();
         var token = _debounceCts.Token;
 
-        Task.Delay(500, token).ContinueWith(t =>
+        _ = RefreshLibraryAfterDelayAsync(token);
+    }
+
+    private async Task RefreshLibraryAfterDelayAsync(CancellationToken token)
+    {
+        try
         {
-            if (t.IsCanceled) return;
+            await Task.Delay(500, token);
 
             var newPlaylist = musicLibrary.Scan(_currentDirectory).Select(Track.FromFileInfo).ToList();
 
@@ -311,8 +328,16 @@ public sealed class MainWindowView : Window
                 Playlist = newPlaylist;
                 uiEventBus.Publish(new PlaylistUpdated(Playlist));
                 uiEventBus.Publish(new RefreshPlaylistsRequested());
+                uiEventBus.Publish(new StatusMessage($"Library refreshed: {Playlist.Count} song{(Playlist.Count == 1 ? "" : "s")}"));
             });
-        });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            App?.Invoke(() => uiEventBus.Publish(new StatusMessage($"Library refresh failed: {ex.Message}", true)));
+        }
     }
 
     private void OnRenamed(object sender, RenamedEventArgs e)
@@ -417,7 +442,40 @@ public sealed class MainWindowView : Window
         Playlist = musicLibrary.Scan(path, recursive).Select(Track.FromFileInfo).ToList();
     }
 
-    private async Task PreCacheNextSongs()
+    private void StartPreCaching()
+    {
+        _preCacheCts?.Cancel();
+        _preCacheCts?.Dispose();
+        _preCacheCts = new CancellationTokenSource();
+        _ = PreCacheNextSongsTrackedAsync(_preCacheCts.Token);
+    }
+
+    private async Task PreCacheNextSongsTrackedAsync(CancellationToken token)
+    {
+        bool entered = false;
+        try
+        {
+            await _preCacheSemaphore.WaitAsync(token);
+            entered = true;
+            await PreCacheNextSongs(token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            App?.Invoke(() => uiEventBus.Publish(new StatusMessage($"Pre-cache failed: {ex.Message}", true)));
+        }
+        finally
+        {
+            if (entered)
+            {
+                _preCacheSemaphore.Release();
+            }
+        }
+    }
+
+    private async Task PreCacheNextSongs(CancellationToken token)
     {
         if (Playlist is null || Playlist.Count == 0) return;
 
@@ -464,6 +522,7 @@ public sealed class MainWindowView : Window
 
         if (tracksToCache.Count > 0)
         {
+            token.ThrowIfCancellationRequested();
             await player.PreCacheNextSongs(tracksToCache);
         }
     }
@@ -482,6 +541,9 @@ public sealed class MainWindowView : Window
             watcher.Dispose();
             _debounceCts?.Cancel();
             _debounceCts?.Dispose();
+            _preCacheCts?.Cancel();
+            _preCacheCts?.Dispose();
+            _preCacheSemaphore.Dispose();
         }
         base.Dispose(disposing);
     }

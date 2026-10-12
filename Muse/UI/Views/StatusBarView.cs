@@ -8,12 +8,23 @@ namespace Muse.UI.Views;
 public class StatusBarView : StatusBar
 {
     private readonly IUiEventBus uiEventBus;
+    private readonly Label statusLabel;
+
     public StatusBarView(IUiEventBus uiEventBus)
     {
         this.uiEventBus = uiEventBus;
 
         AlignmentModes = AlignmentModes.IgnoreFirstOrLast;
         CanFocus = false;
+
+        statusLabel = new Label
+        {
+            X = 1,
+            Y = 0,
+            Width = Dim.Fill()! - 2,
+            Text = "Ready"
+        };
+        Add(statusLabel);
 
         AddShortcuts();
         RegisterBusHandlers();
@@ -122,6 +133,14 @@ public class StatusBarView : StatusBar
                 {
                     muteShortcut.Title = msg.Volume == 0f ? "Unmute" : "Mute";
                 }
+            });
+        });
+
+        uiEventBus.Subscribe<StatusMessage>(msg =>
+        {
+            App?.Invoke(() =>
+            {
+                statusLabel.Text = msg.IsError ? $"Error: {msg.Text}" : msg.Text;
             });
         });
     }
