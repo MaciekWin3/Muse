@@ -30,7 +30,7 @@
 	<ItemGroup>
     <PackageReference Include="LibVLCSharp" Version="3.10.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
     <PackageReference Include="NAudio" Version="3.1.0" />
     <PackageReference Include="NAudio.Wasapi" Version="3.1.0" />
     <PackageReference Include="Terminal.Gui" Version="2.5.0" />
